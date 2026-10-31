@@ -1,27 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
-import RecipesPage from './pages/RecipesPage'
+import RecipeLibrary from './RecipeLibrary'
 import MealPlanPage from './pages/MealPlanPage'
 import GroceriesPage from './pages/GroceriesPage'
 import DiscoverPage from './pages/DiscoverPage'
 
 const STORAGE_KEY = 'simmer-recipes-v1'
-const BACKUP_KEY = 'simmer-backup-v1'
-
-const createBlankRecipe = () => ({
-  id: crypto.randomUUID ? crypto.randomUUID() : `recipe-${Date.now()}`,
-  name: '',
-  ingredients: [],
-  instructions: [],
-  image: '',
-  sourceLink: '',
-  servings: 2,
-  prepTime: 0,
-  cookTime: 0,
-  collections: [],
-  tags: [],
-  favorite: false,
-})
+const DEFAULT_COOKBOOK = 'Uncategorized'
 
 const sampleRecipes = [
   {
@@ -54,6 +39,8 @@ const sampleRecipes = [
     ],
     collections: ['Dinner', 'Weeknight'],
     tags: ['high-protein', 'family-favorite'],
+    cookbook: 'Weeknight Favorites',
+    cookbooks: ['Weeknight Favorites'],
     favorite: true,
   },
   {
@@ -85,49 +72,14 @@ const sampleRecipes = [
     ],
     collections: ['Vegetarian', 'Meal prep'],
     tags: ['quick', 'comfort'],
+    cookbook: DEFAULT_COOKBOOK,
+    cookbooks: [DEFAULT_COOKBOOK],
     favorite: false,
   },
 ]
 
-const parseIngredientList = (value) =>
-  value
-    .split(/\n|,/) 
-    .map((item) => item.trim())
-    .filter(Boolean)
-
-const parseInstructionList = (value) =>
-  value
-    .split(/\n+/)
-    .map((item) => item.trim())
-    .filter(Boolean)
-
-const formatMinutes = (value) => (value ? `${value} min` : '—')
-
-const toDraft = (recipe = null) => {
-  const baseRecipe = recipe ?? createBlankRecipe()
-
-  return {
-    ...baseRecipe,
-    ingredients: Array.isArray(baseRecipe.ingredients)
-      ? baseRecipe.ingredients.join(',\n')
-      : '',
-    instructions: Array.isArray(baseRecipe.instructions)
-      ? baseRecipe.instructions.join('\n')
-      : '',
-    collections: Array.isArray(baseRecipe.collections)
-      ? baseRecipe.collections.join(', ')
-      : '',
-    tags: Array.isArray(baseRecipe.tags) ? baseRecipe.tags.join(', ') : '',
-    sourceLink: baseRecipe.sourceLink ?? '',
-    image: baseRecipe.image ?? '',
-    servings: baseRecipe.servings ?? 2,
-    prepTime: baseRecipe.prepTime ?? 0,
-    cookTime: baseRecipe.cookTime ?? 0,
-    favorite: Boolean(baseRecipe.favorite),
-  }
-}
-
 function App() {
+  const [activeTab, setActiveTab] = useState('recipes')
   const [recipes, setRecipes] = useState(() => {
     const storedRecipes = localStorage.getItem(STORAGE_KEY)
     if (!storedRecipes) {
@@ -141,211 +93,24 @@ function App() {
     }
   })
 
-  const [selectedId, setSelectedId] = useState(sampleRecipes[0]?.id ?? null)
-  const [isCreating, setIsCreating] = useState(false)
-  const [draft, setDraft] = useState(toDraft())
-  const [searchTerm, setSearchTerm] = useState('')
-  const [activeCollection, setActiveCollection] = useState('All')
-  const [activeTag, setActiveTag] = useState('All')
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
-  const [statusMessage, setStatusMessage] = useState('')
-  const [activeTab, setActiveTab] = useState('recipes')
-
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes))
   }, [recipes])
 
-  useEffect(() => {
-    if (statusMessage) {
-      const timer = setTimeout(() => setStatusMessage(''), 1800)
-      return () => clearTimeout(timer)
-    }
-    return undefined
-  }, [statusMessage])
-
-  const allCollections = useMemo(
-    () => ['All', ...new Set(recipes.flatMap((recipe) => recipe.collections || []))],
-    [recipes],
-  )
-
-  const allTags = useMemo(
-    () => ['All', ...new Set(recipes.flatMap((recipe) => recipe.tags || []))],
-    [recipes],
-  )
-
-  const filteredRecipes = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase()
-
-    return recipes.filter((recipe) => {
-      const matchesSearch =
-        !normalizedSearch ||
-        recipe.name.toLowerCase().includes(normalizedSearch) ||
-        recipe.ingredients.some((item) => item.toLowerCase().includes(normalizedSearch))
-
-      const matchesCollection =
-        activeCollection === 'All' ||
-        (recipe.collections || []).includes(activeCollection)
-
-      const matchesTag = activeTag === 'All' || (recipe.tags || []).includes(activeTag)
-      const matchesFavorite = !showFavoritesOnly || recipe.favorite
-
-      return matchesSearch && matchesCollection && matchesTag && matchesFavorite
-    })
-  }, [recipes, searchTerm, activeCollection, activeTag, showFavoritesOnly])
-
-  useEffect(() => {
-    if (!filteredRecipes.length) {
-      setSelectedId(null)
-      return
-    }
-
-    if (!selectedId || !filteredRecipes.some((recipe) => recipe.id === selectedId)) {
-      setSelectedId(filteredRecipes[0].id)
-    }
-  }, [filteredRecipes, selectedId])
-
-  const selectedRecipe = recipes.find((recipe) => recipe.id === selectedId) ?? null
-
-  const resetDraft = () => {
-    setDraft(toDraft())
-  }
-
-  const handleDraftChange = (field, value) => {
-    setDraft((currentDraft) => ({ ...currentDraft, [field]: value }))
-  }
-
-  const handleSubmit = (event) => {
-    event.preventDefault()
-
-    const recipePayload = {
-      id: draft.id || (crypto.randomUUID ? crypto.randomUUID() : `recipe-${Date.now()}`),
-      name: draft.name.trim() || 'Untitled recipe',
-      ingredients: parseIngredientList(draft.ingredients),
-      instructions: parseInstructionList(draft.instructions),
-      image: draft.image.trim(),
-      sourceLink: draft.sourceLink.trim(),
-      servings: Number(draft.servings) || 1,
-      prepTime: Number(draft.prepTime) || 0,
-      cookTime: Number(draft.cookTime) || 0,
-      collections: parseIngredientList(draft.collections),
-      tags: parseIngredientList(draft.tags),
-      favorite: Boolean(draft.favorite),
-    }
-
-    if (draft.id) {
-      setRecipes((currentRecipes) =>
-        currentRecipes.map((recipe) =>
-          recipe.id === draft.id ? recipePayload : recipe,
-        ),
-      )
-      setStatusMessage('Recipe updated')
-      setSelectedId(draft.id)
-    } else {
-      setRecipes((currentRecipes) => [recipePayload, ...currentRecipes])
-      setStatusMessage('Recipe added')
-      setSelectedId(recipePayload.id)
-    }
-
-    setIsCreating(false)
-    setActiveTab('recipes')
-    resetDraft()
-  }
-
-  const handleEdit = () => {
-    if (!selectedRecipe) return
-
-    setIsCreating(true)
-    setActiveTab('recipes')
-    setDraft(toDraft(selectedRecipe))
-  }
-
-  const handleDelete = (recipeId) => {
-    setRecipes((currentRecipes) => currentRecipes.filter((recipe) => recipe.id !== recipeId))
-    setStatusMessage('Recipe deleted')
-    setIsCreating(false)
-    setActiveTab('recipes')
-    resetDraft()
-    if (selectedId === recipeId) {
-      setSelectedId(null)
-    }
-  }
-
-  const toggleFavorite = (recipeId) => {
-    setRecipes((currentRecipes) =>
-      currentRecipes.map((recipe) =>
-        recipe.id === recipeId ? { ...recipe, favorite: !recipe.favorite } : recipe,
-      ),
-    )
-    setStatusMessage('Favorite updated')
-  }
-
-  const exportRecipes = () => {
-    const json = JSON.stringify(recipes, null, 2)
-    const blob = new Blob([json], { type: 'application/json' })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-
-    link.href = url
-    link.download = 'simmer-export.json'
-    link.click()
-    URL.revokeObjectURL(url)
-    setStatusMessage('Data exported')
-  }
-
-  const backupRecipes = () => {
-    localStorage.setItem(BACKUP_KEY, JSON.stringify(recipes))
-    setStatusMessage('Backup saved')
-  }
-
-  const startCreate = () => {
-    setActiveTab('recipes')
-    setIsCreating(true)
-    setSelectedId(null)
-    setDraft(toDraft())
-  }
-
   const renderPage = () => {
     if (activeTab === 'meal plan') {
-      return <MealPlanPage />
+      return <MealPlanPage recipes={recipes} />
     }
 
     if (activeTab === 'groceries') {
-      return <GroceriesPage />
+      return <GroceriesPage recipes={recipes} />
     }
 
     if (activeTab === 'discover') {
-      return <DiscoverPage />
+      return <DiscoverPage recipes={recipes} />
     }
 
-    return (
-      <RecipesPage
-        recipes={recipes}
-        selectedId={selectedId}
-        setSelectedId={setSelectedId}
-        isCreating={isCreating}
-        setIsCreating={setIsCreating}
-        draft={draft}
-        setDraft={setDraft}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        activeCollection={activeCollection}
-        setActiveCollection={setActiveCollection}
-        activeTag={activeTag}
-        setActiveTag={setActiveTag}
-        showFavoritesOnly={showFavoritesOnly}
-        setShowFavoritesOnly={setShowFavoritesOnly}
-        selectedRecipe={selectedRecipe}
-        onSubmit={handleSubmit}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onToggleFavorite={toggleFavorite}
-        onExport={exportRecipes}
-        onBackup={backupRecipes}
-        onStartCreate={startCreate}
-        allCollections={allCollections}
-        allTags={allTags}
-      />
-    )
+    return <RecipeLibrary recipes={recipes} setRecipes={setRecipes} />
   }
 
   return (
@@ -369,15 +134,12 @@ function App() {
           ))}
         </nav>
 
-        <button type="button" className="primary-button" onClick={startCreate}>
+        <button type="button" className="primary-button" onClick={() => setActiveTab('recipes')}>
           Add recipe
         </button>
       </header>
 
-      <main className="content-shell">
-        {statusMessage ? <div className="status-banner">{statusMessage}</div> : null}
-        {renderPage()}
-      </main>
+      <main className="content-shell">{renderPage()}</main>
     </div>
   )
 }
