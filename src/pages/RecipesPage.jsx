@@ -1,6 +1,11 @@
-import './RecipesPage.css'
+// Recipe dashboard view.
+// This page renders the sidebar filters, the main recipe tile grid, the create/edit form,
+// and the full recipe detail view when a tile is selected.
+// If you are adjusting recipe display behavior, search this file first.
 
-// This component renders the recipe list, the filter sidebar, and the create/edit detail form.
+import './RecipesPage.css'
+import { useEffect, useState } from 'react'
+
 // If you are editing recipe behavior, most of the important UI logic lives in this file.
 function RecipesPage({
   recipes = [],
@@ -11,8 +16,6 @@ function RecipesPage({
   setDraft,
   searchTerm,
   setSearchTerm,
-  activeCollection,
-  setActiveCollection,
   activeTag,
   setActiveTag,
   showFavoritesOnly,
@@ -24,8 +27,8 @@ function RecipesPage({
   onToggleFavorite,
   onExport,
   onBackup,
+  onCancel,
   onStartCreate,
-  allCollections = [],
   allTags = [],
   recipeView,
   setRecipeView,
@@ -39,18 +42,45 @@ function RecipesPage({
   organizeSelectedIds = [],
   toggleCookbookSelection,
   onCreateCookbook,
-  cookbookCounts = {},
-  cookbookRenameValue,
-  setCookbookRenameValue,
-  onRenameCookbook,
+  onSaveCookbook,
   onDeleteCookbook,
+  cookbookCounts = {},
 }) {
-  // The list shown in the sidebar is whatever data is currently filtered.
+  // The currently visible recipe list.
+  // This is already filtered upstream and passed in as the source of truth for the UI.
   const visibleRecipes = recipes
 
-  // Shared helper for updating any form field in the editor.
+  // When the cookbook view is selected without a specific cookbook chosen, show cookbook tiles instead of recipe tiles.
+  const showCookbookTiles = recipeView === 'cookbooks' && !selectedCookbook
+
+  // Detail view state.
+  // This is local UI state because it only controls whether the selected recipe is shown in expanded detail mode.
+  const [detailView, setDetailView] = useState(false)
+
+  // When the user starts creating a recipe or there is no selected recipe,
+  // close the detail view so the form or empty state is the active screen.
+  useEffect(() => {
+    if (isCreating || !selectedRecipe) {
+      setDetailView(false)
+    }
+  }, [isCreating, selectedRecipe])
+
+  // Shared helper for updating any field in the draft editor.
+  // This keeps the form state update logic in one place and reduces repeated code in inputs.
   const updateDraft = (field, value) => {
     setDraft((currentDraft) => ({ ...currentDraft, [field]: value }))
+  }
+
+  // Open a tile in detail mode.
+  // This sets the selected recipe and turns on the expanded recipe page.
+  const openRecipeDetail = (recipeId) => {
+    setSelectedId(recipeId)
+    setDetailView(true)
+  }
+
+  // Close the detail view and return the user to the grid.
+  const closeRecipeDetail = () => {
+    setDetailView(false)
   }
 
   return (
@@ -59,23 +89,27 @@ function RecipesPage({
         <div className="panel">
           <div className="panel-header">
             <h2>Recipes</h2>
-            <button type="button" className="primary-button" onClick={onStartCreate}>
-              New recipe
-            </button>
           </div>
 
           <div className="recipe-view-tabs">
             <button
               type="button"
               className={recipeView === 'all' ? 'view-tab active' : 'view-tab'}
-              onClick={() => setRecipeView('all')}
+              onClick={() => {
+                setRecipeView('all')
+                setSelectedCookbook(null)
+              }}
             >
               All recipes
             </button>
+
             <button
               type="button"
               className={recipeView === 'cookbooks' ? 'view-tab active' : 'view-tab'}
-              onClick={() => setRecipeView('cookbooks')}
+              onClick={() => {
+                setRecipeView('cookbooks')
+                setSelectedCookbook(null)
+              }}
             >
               Cookbooks
             </button>
@@ -85,20 +119,6 @@ function RecipesPage({
             <div className="cookbook-section">
               <div className="cookbook-header">
                 <h3>Cookbooks</h3>
-                {selectedCookbook ? (
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={() => {
-                      // Toggle the cookbook creation form for the selected cookbook.
-                      setIsOrganizing((current) => !current)
-                      setOrganizeSelectedIds([])
-                      setCookbookInput('')
-                    }}
-                  >
-                    {isOrganizing ? 'Close' : 'New cookbook'}
-                  </button>
-                ) : null}
               </div>
 
               <div className="chip-list cookbook-list">
@@ -115,7 +135,7 @@ function RecipesPage({
                 ))}
               </div>
 
-              {selectedCookbook && isOrganizing ? (
+              {!selectedCookbook && isOrganizing ? (
                 <div className="organize-box">
                   <label className="organize-label">
                     <span>New cookbook name</span>
@@ -164,22 +184,6 @@ function RecipesPage({
           </label>
 
           <div className="filter-group">
-            <h3>Collections</h3>
-            <div className="chip-list">
-              {allCollections.map((collection) => (
-                <button
-                  key={collection}
-                  type="button"
-                  className={activeCollection === collection ? 'chip active' : 'chip'}
-                  onClick={() => setActiveCollection(collection)}
-                >
-                  {collection}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="filter-group">
             <h3>Tags</h3>
             <div className="chip-list">
               {allTags.map((tag) => (
@@ -206,30 +210,89 @@ function RecipesPage({
             </button>
           </div>
         </div>
-
-        <div className="recipe-list">
-          {visibleRecipes.map((recipe) => (
-            <button
-              key={recipe.id}
-              type="button"
-              className={selectedId === recipe.id ? 'recipe-item active' : 'recipe-item'}
-              onClick={() => setSelectedId(recipe.id)}
-            >
-              <span className="recipe-item-name">{recipe.name}</span>
-              <span className="recipe-item-meta">
-                {recipe.cookbook || 'Uncategorized'} · {recipe.favorite ? '★ Favorite' : 'Recipe'}
-              </span>
-            </button>
-          ))}
-        </div>
       </aside>
 
       <section className="recipes-main">
-        {isCreating || !selectedRecipe ? (
+        {!isCreating && !detailView ? (
+          <div className="recipe-grid-panel">
+            <div className="panel-header recipe-grid-header">
+              <h2>{showCookbookTiles ? 'Cookbooks' : selectedCookbook ? selectedCookbook : 'Recipes'}</h2>
+
+              {selectedCookbook && !showCookbookTiles ? (
+                <div className="cookbook-tile-actions">
+                  <button
+                    type="button"
+                    className="tiny-button"
+                    onClick={() => {
+                      setIsOrganizing(true)
+                      setOrganizeSelectedIds(
+                        recipes.filter((recipe) => getRecipeCookbooks(recipe).includes(selectedCookbook)).map((recipe) => recipe.id),
+                      )
+                      setCookbookInput(selectedCookbook)
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="tiny-button danger"
+                    onClick={() => onDeleteCookbook(selectedCookbook)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="recipe-grid recipe-grid-large">
+              {showCookbookTiles
+                ? cookbookNames.map((cookbook) => (
+                    <button
+                      key={cookbook}
+                      type="button"
+                      className="recipe-tile cookbook-tile"
+                      onClick={() => setSelectedCookbook(cookbook)}
+                    >
+                      <div className="cookbook-tile-header">
+                        <span className="cookbook-tile-name">{cookbook}</span>
+                        <span className="cookbook-count badge">{cookbookCounts[cookbook] || 0}</span>
+                      </div>
+                      <div className="cookbook-tile-body">
+                        <span>{cookbookCounts[cookbook] || 0} recipe{(cookbookCounts[cookbook] || 0) === 1 ? '' : 's'}</span>
+                      </div>
+                    </button>
+                  ))
+                : visibleRecipes.map((recipe) => (
+                    <button
+                      key={recipe.id}
+                      type="button"
+                      className={selectedId === recipe.id ? 'recipe-tile active' : 'recipe-tile'}
+                      onClick={() => openRecipeDetail(recipe.id)}
+                    >
+                      <img
+                        src={recipe.image || 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=900&q=80'}
+                        alt={recipe.name}
+                      />
+                      <div className="recipe-tile-content">
+                        <span className="recipe-item-name">{recipe.name}</span>
+                        <span className="recipe-item-meta">
+                          {recipe.cookbook || 'Uncategorized'} · {recipe.favorite ? '★ Favorite' : 'Recipe'}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+            </div>
+          </div>
+        ) : null}
+
+        {isCreating ? (
           <form className="recipe-form" onSubmit={onSubmit}>
             <div className="form-header">
               <h2>{draft.id ? 'Edit recipe' : 'Create recipe'}</h2>
               <div className="form-actions">
+                <button type="button" className="secondary-button" onClick={onCancel}>
+                  Cancel
+                </button>
                 <button type="button" className="secondary-button" onClick={onBackup}>
                   Backup
                 </button>
@@ -250,7 +313,7 @@ function RecipesPage({
             </label>
 
             <label>
-              <span>Source link</span>
+              <span>Link</span>
               <input value={draft.sourceLink ?? ''} onChange={(e) => updateDraft('sourceLink', e.target.value)} />
             </label>
 
@@ -280,16 +343,6 @@ function RecipesPage({
             </label>
 
             <label>
-              <span>Collections</span>
-              <input value={draft.collections ?? ''} onChange={(e) => updateDraft('collections', e.target.value)} />
-            </label>
-
-            <label>
-              <span>Tags</span>
-              <input value={draft.tags ?? ''} onChange={(e) => updateDraft('tags', e.target.value)} />
-            </label>
-
-            <label>
               <span>Cookbooks</span>
               <input
                 value={(draft.cookbooks || [draft.cookbook || 'Uncategorized']).join(', ')}
@@ -298,8 +351,8 @@ function RecipesPage({
             </label>
 
             <label>
-              <span>Primary cookbook</span>
-              <input value={draft.cookbook ?? ''} onChange={(e) => updateDraft('cookbook', e.target.value)} />
+              <span>Tags</span>
+              <input value={draft.tags ?? ''} onChange={(e) => updateDraft('tags', e.target.value)} />
             </label>
 
             <label>
@@ -327,8 +380,10 @@ function RecipesPage({
               </button>
             </div>
           </form>
-        ) : (
-          <article className="recipe-detail">
+        ) : null}
+
+        {selectedRecipe && detailView ? (
+          <article className="recipe-detail recipe-detail-page">
             <div className="recipe-detail-header">
               <div>
                 <p className="eyebrow">Recipe</p>
@@ -336,6 +391,9 @@ function RecipesPage({
               </div>
 
               <div className="recipe-detail-actions">
+                <button type="button" className="secondary-button" onClick={closeRecipeDetail}>
+                  Back
+                </button>
                 <button type="button" className="secondary-button" onClick={() => onToggleFavorite(selectedRecipe.id)}>
                   {selectedRecipe.favorite ? 'Unfavorite' : 'Favorite'}
                 </button>
@@ -388,7 +446,14 @@ function RecipesPage({
               </section>
             </div>
           </article>
-        )}
+        ) : null}
+
+        {!isCreating && !detailView && !visibleRecipes.length ? (
+          <div className="empty-state">
+            <h3>No recipes yet</h3>
+            <p>Use the Add recipe button to create your first recipe.</p>
+          </div>
+        ) : null}
       </section>
     </div>
   )

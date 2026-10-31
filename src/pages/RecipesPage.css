@@ -1,3 +1,54 @@
+/* Recipe page layout and tile styling.
+   This stylesheet controls the two-column recipe screen: the left filter sidebar and the
+   main right-side grid/detail area. Change tile sizing, spacing, and detail-page polish here.
+*/
+
+.recipes-page {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 22px;
+  min-height: 70vh;
+}
+
+.recipes-sidebar,
+.recipes-main {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.recipes-main {
+  min-height: 100%;
+}
+
+.panel,
+.recipe-grid-panel,
+.recipe-form,
+.recipe-detail {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(214, 182, 164, 0.45);
+  border-radius: 24px;
+  padding: 20px;
+  box-shadow: 0 18px 30px rgba(109, 74, 49, 0.08);
+}
+
+.recipe-grid-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 100%;
+}
+
+.recipe-grid-large {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  min-height: 100%;
+}
+
+.recipe-detail-page {
+  min-height: 70vh;
+}
+
 .recipes-page {
   display: grid;
   grid-template-columns: 340px minmax(0, 1fr);
@@ -31,6 +82,38 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.recipe-grid-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.recipe-grid-header h2 {
+  margin: 0;
+}
+
+.recipe-grid-header .cookbook-tile-actions {
+  position: static;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.recipe-grid-header .cookbook-tile-actions .tiny-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0.45rem 0.8rem;
+}
+
+.recipe-grid-header .cookbook-tile-actions .tiny-button.danger {
+  color: #991b1b;
+  background: rgba(254, 242, 242, 0.96);
 }
 
 .recipe-list {
@@ -321,6 +404,146 @@
   background: linear-gradient(135deg, #fef3c7, #fde68a);
   border-color: rgba(245, 158, 11, 0.5);
   color: #92400e;
+}
+
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  align-content: start;
+}
+
+.recipe-tile {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid #f0e4dc;
+  background: #fff;
+  box-shadow: 0 12px 24px rgba(109, 74, 49, 0.06);
+  text-align: left;
+  color: #1f2937;
+}
+
+.recipe-tile img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  display: block;
+}
+
+.recipe-tile-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 14px 16px;
+}
+
+.recipe-tile.active {
+  border-color: rgba(249, 115, 22, 0.35);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 28px rgba(180, 83, 9, 0.12);
+}
+
+.recipe-detail-page {
+  min-height: 70vh;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(214, 182, 164, 0.4);
+  border-radius: 24px;
+  padding: 24px;
+  color: #4b5563;
+}
+
+.empty-state h3 {
+  margin: 0 0 8px;
+  color: #111827;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+.recipe-tile.cookbook-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 180px;
+  padding: 18px;
+  background: linear-gradient(135deg, #fffaf5 0%, #fff 100%);
+}
+
+.cookbook-tile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cookbook-tile-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.cookbook-tile-body {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  color: #6b7280;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.cookbook-count.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #fff1e6;
+  color: #9a5a14;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.cookbook-tile {
+  position: relative;
+}
+
+.cookbook-tile-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+
+.cookbook-tile-actions .tiny-button {
+  border: 1px solid rgba(214, 176, 160, 0.8);
+  background: rgba(255, 255, 255, 0.92);
+  color: #4b5563;
+  border-radius: 999px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.7rem;
+}
+
+.cookbook-tile-actions .tiny-button.danger {
+  color: #991b1b;
+  background: rgba(254, 242, 242, 0.96);
 }
 
 @media (max-width: 900px) {

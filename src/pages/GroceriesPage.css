@@ -1,3 +1,8 @@
+/* Grocery page styles.
+   This file styles the shopping list and the page shell for the Groceries tab.
+   If you want to change list spacing, card styling, or display format, edit this file.
+*/
+
 .groceries-page {
   min-height: 60vh;
 }

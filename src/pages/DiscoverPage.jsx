@@ -1,13 +1,15 @@
+// Inspiration page.
+// This screen is intended to showcase featured recipes and summary stats.
+// If you want to change the content or layout of the discovery view, edit the arrays and counts here.
+
 import './DiscoverPage.css'
 
-// This page is the inspiration tab: it surfaces featured recipes and summary stats.
-// If you want to change what shows up here, edit the arrays and counts below.
 function DiscoverPage({ recipes = [] }) {
   // Show the first three recipes as featured cards on the landing/inspiration view.
   const featured = recipes.slice(0, 3)
 
-  // Collect unique collection names so the summary reflects how the app is organized.
-  const topCollections = [...new Set(recipes.flatMap((recipe) => recipe.collections || []))].slice(0, 4)
+  // Collect unique cookbook names instead of legacy collections.
+  const topCookbooks = [...new Set(recipes.flatMap((recipe) => recipe.cookbooks || recipe.cookbook ? [recipe.cookbook || recipe.cookbooks?.[0]] : []))].filter(Boolean).slice(0, 4)
 
   // Count favorite recipes to give a quick health check on the library.
   const favoriteCount = recipes.filter((recipe) => recipe.favorite).length
@@ -21,7 +23,7 @@ function DiscoverPage({ recipes = [] }) {
           {featured.map((recipe) => (
             <article key={recipe.id} className="discover-card">
               <h3>{recipe.name}</h3>
-              <p>{recipe.collections?.join(' • ') || 'Saved recipe'}</p>
+              <p>{recipe.cookbooks?.join(' • ') || recipe.cookbook || 'Saved recipe'}</p>
             </article>
           ))}
         </div>
@@ -32,8 +34,8 @@ function DiscoverPage({ recipes = [] }) {
             <span>favorite recipes</span>
           </div>
           <div>
-            <strong>{topCollections.length}</strong>
-            <span>collections</span>
+            <strong>{topCookbooks.length}</strong>
+            <span>cookbooks</span>
           </div>
         </div>
       </div>

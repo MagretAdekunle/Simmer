@@ -1,3 +1,8 @@
+// App shell and top-level navigation.
+// This file decides which page is visible (Recipes, Meal Plan, Groceries, Discover)
+// and it also triggers the "Add recipe" action from the top navigation.
+// If you want to add a new tab or change the app layout, start here.
+
 import { useEffect, useState } from 'react'
 import './App.css'
 import RecipeLibrary from './RecipeLibrary'
@@ -8,6 +13,7 @@ import DiscoverPage from './pages/DiscoverPage'
 const STORAGE_KEY = 'simmer-recipes-v1'
 const DEFAULT_COOKBOOK = 'Uncategorized'
 
+// Demo data used until the user adds or stores their own recipes.
 const sampleRecipes = [
   {
     id: 'taco-bowl',
@@ -79,7 +85,13 @@ const sampleRecipes = [
 ]
 
 function App() {
+  // Tracks which section of the app is currently visible.
   const [activeTab, setActiveTab] = useState('recipes')
+
+  // A one-time signal used to tell the recipe library to open a blank creation form.
+  const [createRecipeRequested, setCreateRecipeRequested] = useState(false)
+
+  // Keep the recipe list in localStorage so it persists across page refreshes.
   const [recipes, setRecipes] = useState(() => {
     const storedRecipes = localStorage.getItem(STORAGE_KEY)
     if (!storedRecipes) {
@@ -97,6 +109,7 @@ function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes))
   }, [recipes])
 
+  // Route the selected app tab to the right page component.
   const renderPage = () => {
     if (activeTab === 'meal plan') {
       return <MealPlanPage recipes={recipes} />
@@ -110,7 +123,14 @@ function App() {
       return <DiscoverPage recipes={recipes} />
     }
 
-    return <RecipeLibrary recipes={recipes} setRecipes={setRecipes} />
+    return (
+      <RecipeLibrary
+        recipes={recipes}
+        setRecipes={setRecipes}
+        createRecipeRequested={createRecipeRequested}
+        setCreateRecipeRequested={setCreateRecipeRequested}
+      />
+    )
   }
 
   return (
@@ -134,7 +154,15 @@ function App() {
           ))}
         </nav>
 
-        <button type="button" className="primary-button" onClick={() => setActiveTab('recipes')}>
+        <button
+          type="button"
+          className="primary-button"
+          onClick={() => {
+            // Jump to the recipes screen and create a blank draft.
+            setActiveTab('recipes')
+            setCreateRecipeRequested(true)
+          }}
+        >
           Add recipe
         </button>
       </header>

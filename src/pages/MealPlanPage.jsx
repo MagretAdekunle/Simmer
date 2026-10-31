@@ -1,3 +1,7 @@
+// Weekly meal plan view.
+// This page turns saved recipes into a simple calendar-like week layout.
+// If you want different meal slots, ordering, or ranking rules, edit the mealPlan array here.
+
 import './MealPlanPage.css'
 
 // This page turns the saved recipes into a simple weekly meal schedule.
@@ -28,7 +32,7 @@ function MealPlanPage({ recipes = [] }) {
             <div key={day} className="plan-day">
               <h3>{day}</h3>
               <p>{recipe ? recipe.name : 'Open a recipe slot'}</p>
-              {recipe ? <span>{recipe.collections?.join(' • ') || 'Saved recipe'}</span> : null}
+              {recipe ? <span>{recipe.cookbooks?.join(' • ') || recipe.cookbook || 'Saved recipe'}</span> : null}
             </div>
           ))}
         </div>

@@ -1,3 +1,8 @@
+/* Meal plan page styles.
+   This file styles the weekly menu grid and each day card.
+   If you want to change the plan layout or card appearance, edit this file.
+*/
+
 .meal-plan-page {
   min-height: 60vh;
 }

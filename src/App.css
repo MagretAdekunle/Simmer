@@ -1,3 +1,9 @@
+/* Global app styling.
+   This file controls the shared shell, navigation, buttons, and common form elements.
+   If you want to change spacing, colors, or reusable component styles across the app,
+   start here before editing page-specific CSS files.
+*/
+
 :root {
   font-family: Inter, 'Segoe UI', sans-serif;
   line-height: 1.5;
