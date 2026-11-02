@@ -1,14 +1,15 @@
-// App shell and top-level navigation.
-// This file decides which page is visible (Recipes, Meal Plan, Groceries, Discover)
-// and it also triggers the "Add recipe" action from the top navigation.
-// If you want to add a new tab or change the app layout, start here.
-
 import { useEffect, useState } from 'react'
 import './App.css'
 import RecipeLibrary from './RecipeLibrary'
 import MealPlanPage from './pages/MealPlanPage'
 import GroceriesPage from './pages/GroceriesPage'
 import DiscoverPage from './pages/DiscoverPage'
+import ProfilePage from './pages/ProfilePage'
+import PantryPage from './pages/PantryPage'
+
+// This file decides which page is visible (Recipes, Meal Plan, Groceries, Discover)
+// If you want to add a new tab or change the app layout, start here.
+
 
 const STORAGE_KEY = 'simmer-recipes-v1'
 const DEFAULT_COOKBOOK = 'Uncategorized'
@@ -123,6 +124,14 @@ function App() {
       return <DiscoverPage recipes={recipes} />
     }
 
+     if (activeTab === 'profile') {
+      return <ProfilePage recipes={recipes} />
+    }
+
+    if (activeTab === 'pantry') {
+      return <PantryPage recipes={recipes} />
+    }
+
     return (
       <RecipeLibrary
         recipes={recipes}
@@ -142,7 +151,7 @@ function App() {
         </div>
 
         <nav className="nav-tabs" aria-label="Main navigation">
-          {['recipes', 'meal plan', 'groceries', 'discover'].map((tab) => (
+          {['recipes', 'meal plan', 'groceries', 'discover', 'pantry'].map((tab) => (
             <button
               key={tab}
               type="button"
@@ -154,17 +163,31 @@ function App() {
           ))}
         </nav>
 
-        <button
-          type="button"
-          className="primary-button"
-          onClick={() => {
-            // Jump to the recipes screen and create a blank draft.
-            setActiveTab('recipes')
-            setCreateRecipeRequested(true)
-          }}
-        >
-          Add recipe
-        </button>
+        <div className="nav-actions">
+
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => {
+              setActiveTab('recipes')
+              setCreateRecipeRequested(true)
+            }}
+          >
+            Add recipe
+          </button>
+
+          <button
+            type="button"
+            className="profile-button"
+            aria-label="Profile"
+            onClick={() => setActiveTab('profile')}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 12a3.5 3.5 0 1 0-3.5-3.5A3.5 3.5 0 0 0 12 12Zm0 1.75c-3.25 0-6 1.87-6 4.19V19h12v-.06c0-2.32-2.75-4.19-6-4.19Z" />
+            </svg>
+          </button>
+
+        </div>
       </header>
 
       <main className="content-shell">{renderPage()}</main>

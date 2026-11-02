@@ -49,7 +49,7 @@ button {
 
 .app-shell {
   min-height: 100vh;
-  padding: 24px;
+  padding: 88px 24px 24px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -59,12 +59,17 @@ button {
   display: grid;
   grid-template-columns: 180px 1fr auto;
   align-items: center;
-  gap: 20px;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(214, 182, 164, 0.45);
-  border-radius: 26px;
-  padding: 18px 22px;
-  box-shadow: 0 22px 40px rgba(109, 74, 49, 0.08);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100vw;
+  z-index: 100;
+  gap: 14px;
+  background: #fffaf5;
+  border-bottom: 1px solid rgba(214, 182, 164, 0.45);
+  padding: 8px 14px;
+  box-shadow: none;
 }
 
 .brand-block {
@@ -74,15 +79,15 @@ button {
 
 .brand-block h1 {
   margin: 0;
-  font-size: 2.1rem;
-  letter-spacing: -0.06em;
+  font-size: 1.8rem;
+  letter-spacing: -0.006em;
 }
 
 .eyebrow {
-  margin: 0 0 4px;
+  margin: 0 0 2px;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
-  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  font-size: 0.65rem;
   color: #d97706;
   font-weight: 800;
 }
@@ -90,11 +95,11 @@ button {
 .nav-tabs {
   display: flex;
   justify-content: center;
-  gap: 10px;
-  padding: 8px;
+  gap: 6px;
+  padding: 4px;
   background: #f6f1ee;
   border: 1px solid #f0e0d4;
-  border-radius: 18px;
+  border-radius: 8px;
   width: fit-content;
   margin: 0 auto;
 }
@@ -104,15 +109,15 @@ button {
   background: transparent;
   color: #6b7280;
   font-weight: 700;
-  padding: 0.7rem 1rem;
-  border-radius: 12px;
+  padding: 0.42rem 0.7rem;
+  border-radius: 6px;
   transition: all 0.2s ease;
 }
 
 .nav-tab.active {
   background: #fff;
   color: #111827;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  box-shadow: none;
 }
 
 .primary-button {
@@ -120,9 +125,9 @@ button {
   color: white;
   border: none;
   border-radius: 999px;
-  padding: 0.78rem 1.2rem;
+  padding: 0.6rem 1rem;
   font-weight: 700;
-  box-shadow: 0 12px 24px rgba(249, 115, 22, 0.2);
+  box-shadow: none;
 }
 
 .content-shell {
@@ -182,7 +187,7 @@ h3 {
 .primary-button {
   background: linear-gradient(135deg, #ff9f43 0%, #f97316 45%, #ef4444 100%);
   color: white;
-  box-shadow: 0 12px 24px rgba(249, 115, 22, 0.2);
+  box-shadow: 0 10px 20px rgba(249, 115, 22, 0.2);
 }
 
 .secondary-button {
@@ -737,4 +742,39 @@ h3 {
   .brand-block {
     text-align: center;
   }
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-button {
+  width: 2.2rem;
+  height: 2.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8efe9;
+  border: 1px solid #ead9cc;
+  color: #374151;
+  padding: 0;
+  border-radius: 8px;
+}
+
+.profile-button svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: currentColor;
+}
+
+.primary-button,
+.profile-button {
+  transition: transform 0.18s ease, opacity 0.2s ease;
+}
+
+.primary-button:hover,
+.profile-button:hover {
+  transform: translateY(-1px);
 }
