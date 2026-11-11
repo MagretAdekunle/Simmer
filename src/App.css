@@ -722,6 +722,7 @@ h3 {
 @media (max-width: 980px) {
   .app-shell {
     grid-template-columns: 1fr;
+    padding-top: 60px;
   }
 
   .form-grid,
@@ -735,12 +736,46 @@ h3 {
   }
 
   .top-nav {
-    grid-template-columns: 1fr;
-    justify-items: center;
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 6px 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .top-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .brand-block {
-    text-align: center;
+    flex: 0 0 auto;
+    text-align: left;
+  }
+
+  .brand-block .eyebrow {
+    display: none;
+  }
+
+  .brand-block h1 {
+    font-size: 1.2rem;
+  }
+
+  .nav-tabs {
+    flex: 0 0 auto;
+    width: max-content;
+    justify-content: flex-start;
+    gap: 2px;
+    margin: 0;
+    padding: 2px;
+  }
+
+  .nav-tab {
+    flex: 0 0 auto;
+    padding: 0.28rem 0.5rem;
+    font-size: 0.82rem;
   }
 }
 
@@ -748,6 +783,13 @@ h3 {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+@media (max-width: 980px) {
+  .nav-actions {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
 }
 
 .profile-button {
@@ -772,6 +814,18 @@ h3 {
 .primary-button,
 .profile-button {
   transition: transform 0.18s ease, opacity 0.2s ease;
+}
+
+@media (max-width: 980px) {
+  .nav-actions .primary-button {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.82rem;
+  }
+
+  .profile-button {
+    width: 1.8rem;
+    height: 1.8rem;
+  }
 }
 
 .primary-button:hover,

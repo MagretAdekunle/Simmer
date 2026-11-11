@@ -17,16 +17,17 @@ const getRecipeCookbooks = (recipe = {}) => {
   const legacyCookbook = recipe.cookbook
   const values = [...explicitCookbooks, ...(legacyCookbook ? [legacyCookbook] : [])]
 
-  return [...new Set(values.map((item) => String(item).trim()).filter(Boolean))]
+  return [...new Set(values.map((cookbookName) => String(cookbookName).trim()).filter(Boolean))]
 }
 
 // Blank recipe used by the create form.
 // Update this if you add new recipe fields (for example: meal type, budget, or notes).
 const createBlankRecipe = () => ({
-  id: crypto.randomUUID ? crypto.randomUUID() : `recipe-${Date.now()}`,
   name: '',
+  description: '',
   ingredients: [],
   instructions: [],
+  notes: '',
   image: '',
   sourceLink: '',
   servings: 2,
@@ -37,6 +38,8 @@ const createBlankRecipe = () => ({
   cookbook: DEFAULT_COOKBOOK,
   cookbooks: [DEFAULT_COOKBOOK],
   cookbookComment: '',
+  cooked: false,
+  rating: 0,
   favorite: false,
 })
 
@@ -75,6 +78,8 @@ const sampleRecipes = [
     tags: ['high-protein', 'family-favorite'],
     cookbook: 'Weeknight Favorites',
     cookbooks: ['Weeknight Favorites'],
+    cooked: true,
+    rating: 4,
     favorite: true,
   },
   {
@@ -108,23 +113,23 @@ const sampleRecipes = [
     tags: ['quick', 'comfort'],
     cookbook: DEFAULT_COOKBOOK,
     cookbooks: [DEFAULT_COOKBOOK],
+    cooked: false,
+    rating: 0,
     favorite: false,
   },
 ]
 
 // Convert a comma/newline-separated string into an array of clean ingredient values.
 const parseIngredientList = (value) =>
-  value
-    .split(/\n|,/) 
-    .map((item) => item.trim())
+  (Array.isArray(value) ? value : String(value || '').split(/\n|,/))
+    .map((ingredient) => ingredient.trim())
     .filter(Boolean)
 
 // Used for populating textareas in the form.
 // If you add a new field that is an array, add a matching formatter here.
 const parseInstructionList = (value) =>
-  value
-    .split(/\n+/)
-    .map((item) => item.trim())
+  (Array.isArray(value) ? value : String(value || '').split(/\n+/))
+    .map((instruction) => instruction.trim())
     .filter(Boolean)
 
 // Cookbook names are entered as comma-separated or newline-separated text.
@@ -135,7 +140,7 @@ const parseCookbookList = (value) => {
   return [...new Set(
     String(value)
       .split(/[\n,]+/)
-      .map((item) => item.trim())
+      .map((cookbookName) => cookbookName.trim())
       .filter(Boolean),
   )]
 }
@@ -148,12 +153,10 @@ const toDraft = (recipe = null) => {
 
   return {
     ...baseRecipe,
-    ingredients: Array.isArray(baseRecipe.ingredients)
-      ? baseRecipe.ingredients.join(',\n')
-      : '',
-    instructions: Array.isArray(baseRecipe.instructions)
-      ? baseRecipe.instructions.join('\n')
-      : '',
+    description: baseRecipe.description ?? '',
+    ingredients: Array.isArray(baseRecipe.ingredients) ? [...baseRecipe.ingredients] : [],
+    instructions: Array.isArray(baseRecipe.instructions) ? [...baseRecipe.instructions] : [],
+    notes: baseRecipe.notes ?? '',
     collections: Array.isArray(baseRecipe.collections)
       ? baseRecipe.collections.join(', ')
       : '',
@@ -166,6 +169,8 @@ const toDraft = (recipe = null) => {
     cookbook: cookbooks[0] ?? DEFAULT_COOKBOOK,
     cookbooks: cookbooks.length ? cookbooks : [DEFAULT_COOKBOOK],
     cookbookComment: baseRecipe.cookbookComment ?? '',
+    cooked: Boolean(baseRecipe.cooked),
+    rating: Number(baseRecipe.rating ?? 0),
     favorite: Boolean(baseRecipe.favorite),
   }
 }
@@ -195,6 +200,11 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
   // These filters are applied before the grid or detail view is rendered.
   const [searchTerm, setSearchTerm] = useState('')
   const [activeTag, setActiveTag] = useState('All')
+  const [activeIngredient, setActiveIngredient] = useState('All')
+  const [totalTimeFilter, setTotalTimeFilter] = useState('all')
+  const [cookedFilter, setCookedFilter] = useState('all')
+  const [ratingFilter, setRatingFilter] = useState('all')
+  const [sortBy, setSortBy] = useState('default')
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
 
   // Status banner appears after actions like save, delete, export, and cookbook creation.
@@ -203,6 +213,7 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
 
   // 'all' shows everything; 'cookbooks' switches the list to filter by cookbook membership.
   const [recipeView, setRecipeView] = useState('all')
+  const [recipeDisplayMode, setRecipeDisplayMode] = useState('grid')
 
   // The cookbook currently selected in cookbook mode.
   // This is used to narrow the recipe list to recipes assigned to one cookbook.
@@ -252,6 +263,12 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
     [recipes],
   )
 
+  const allIngredients = useMemo(() => {
+    const values = recipes.flatMap((recipe) => recipe.ingredients || [])
+    const ingredients = [...new Set(values.map((ingredient) => String(ingredient).trim()).filter(Boolean))]
+    return ['All', ...ingredients.sort((a, b) => a.localeCompare(b))]
+  }, [recipes])
+
   // Build the cookbook filter list.
   // The default 'Uncategorized' option stays present so recipes without a cookbooks value still show up.
   const cookbookNames = useMemo(() => {
@@ -298,18 +315,85 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
   const filteredRecipes = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
 
-    return recipes.filter((recipe) => {
+    const filteredList = recipes.filter((recipe) => {
+      const recipeIngredients = recipe.ingredients || []
+      const totalTime = Number(recipe.prepTime || 0) + Number(recipe.cookTime || 0)
+      const cooked = Boolean(recipe.cooked)
+      const rating = Number(recipe.rating || 0)
+
       const matchesSearch =
         !normalizedSearch ||
         recipe.name.toLowerCase().includes(normalizedSearch) ||
-        (recipe.ingredients || []).some((item) => item.toLowerCase().includes(normalizedSearch))
+        recipeIngredients.some((ingredient) => ingredient.toLowerCase().includes(normalizedSearch))
 
       const matchesTag = activeTag === 'All' || (recipe.tags || []).includes(activeTag)
+      const matchesIngredient =
+        activeIngredient === 'All' ||
+        recipeIngredients.some((ingredient) => ingredient.toLowerCase() === activeIngredient.toLowerCase())
+      const matchesTotalTime =
+        totalTimeFilter === 'all' ||
+        (totalTimeFilter === 'under-30' && totalTime <= 30) ||
+        (totalTimeFilter === '30-60' && totalTime > 30 && totalTime <= 60) ||
+        (totalTimeFilter === 'over-60' && totalTime > 60)
+      const matchesCooked =
+        cookedFilter === 'all' ||
+        (cookedFilter === 'cooked' && cooked) ||
+        (cookedFilter === 'not-cooked' && !cooked)
+      const matchesRating =
+        ratingFilter === 'all' ||
+        (ratingFilter === '4.5+' && rating >= 4.5) ||
+        (ratingFilter === '4+' && rating >= 4) ||
+        (ratingFilter === '3.5+' && rating >= 3.5) ||
+        (ratingFilter === '3+' && rating >= 3) ||
+        (ratingFilter === '2.5+' && rating >= 2.5) ||
+        (ratingFilter === '2+' && rating >= 2)
       const matchesFavorite = !showFavoritesOnly || recipe.favorite
 
-      return matchesSearch && matchesTag && matchesFavorite
+      return (
+        matchesSearch &&
+        matchesTag &&
+        matchesIngredient &&
+        matchesTotalTime &&
+        matchesCooked &&
+        matchesRating &&
+        matchesFavorite
+      )
     })
-  }, [recipes, searchTerm, activeTag, showFavoritesOnly])
+
+    if (sortBy === 'name-asc') {
+      return [...filteredList].sort((a, b) => a.name.localeCompare(b.name))
+    }
+
+    if (sortBy === 'time-asc') {
+      return [...filteredList].sort(
+        (a, b) =>
+          Number(a.prepTime || 0) + Number(a.cookTime || 0) - (Number(b.prepTime || 0) + Number(b.cookTime || 0)),
+      )
+    }
+
+    if (sortBy === 'time-desc') {
+      return [...filteredList].sort(
+        (a, b) =>
+          Number(b.prepTime || 0) + Number(b.cookTime || 0) - (Number(a.prepTime || 0) + Number(a.cookTime || 0)),
+      )
+    }
+
+    if (sortBy === 'rating-desc') {
+      return [...filteredList].sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0))
+    }
+
+    return filteredList
+  }, [
+    recipes,
+    searchTerm,
+    activeTag,
+    activeIngredient,
+    totalTimeFilter,
+    cookedFilter,
+    ratingFilter,
+    showFavoritesOnly,
+    sortBy,
+  ])
 
   // When the user picks a cookbook, narrow the filtered list to only recipes assigned to that cookbook.
   const filteredCookbookRecipes = useMemo(() => {
@@ -320,7 +404,7 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
   }, [filteredRecipes, selectedCookbook])
 
   // Keep selectedId aligned with whatever recipe list is currently visible.
-  // This prevents the selected recipe from pointing at an item that is no longer in the current filter view.
+  // Drop the selection when filters hide its recipe.
   useEffect(() => {
     const visibleRecipes = recipeView === 'cookbooks' ? filteredCookbookRecipes : filteredRecipes
 
@@ -358,8 +442,10 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
     const recipePayload = {
       id: draft.id || (crypto.randomUUID ? crypto.randomUUID() : `recipe-${Date.now()}`),
       name: draft.name.trim() || 'Untitled recipe',
+      description: draft.description.trim(),
       ingredients: parseIngredientList(draft.ingredients),
       instructions: parseInstructionList(draft.instructions),
+      notes: draft.notes.trim(),
       image: draft.image.trim(),
       sourceLink: draft.sourceLink.trim(),
       servings: Number(draft.servings) || 1,
@@ -369,11 +455,12 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
       cookbook: firstCookbook,
       cookbooks: normalizedCookbooks,
       cookbookComment: draft.cookbookComment?.trim() ?? '',
+      cooked: Boolean(draft.cooked),
+      rating: Math.max(0, Math.min(5, Math.round((Number(draft.rating) || 0) * 2) / 2)),
       favorite: Boolean(draft.favorite),
     }
 
     if (draft.id) {
-      // Existing recipe: replace the matching item in the library.
       setRecipes((currentRecipes) =>
         currentRecipes.map((recipe) =>
           recipe.id === draft.id ? recipePayload : recipe,
@@ -464,6 +551,16 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
     setRecipeView('all')
     setSelectedId(null)
     setDraft(toDraft())
+  }
+
+  const startCookbookCreate = () => {
+    setIsCreating(false)
+    setRecipeView('cookbooks')
+    setSelectedCookbook(null)
+    setIsOrganizing(true)
+    setCookbookInput('')
+    setOrganizeSelectedIds([])
+    resetDraft()
   }
 
   // Toggle recipe selection inside the cookbook creation panel.
@@ -665,8 +762,19 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
         setSearchTerm={setSearchTerm}
         activeTag={activeTag}
         setActiveTag={setActiveTag}
+        activeIngredient={activeIngredient}
+        setActiveIngredient={setActiveIngredient}
+        totalTimeFilter={totalTimeFilter}
+        setTotalTimeFilter={setTotalTimeFilter}
+        cookedFilter={cookedFilter}
+        setCookedFilter={setCookedFilter}
+        ratingFilter={ratingFilter}
+        setRatingFilter={setRatingFilter}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
         showFavoritesOnly={showFavoritesOnly}
         setShowFavoritesOnly={setShowFavoritesOnly}
+        allIngredients={allIngredients}
         selectedRecipe={selectedRecipe}
         onSubmit={handleSubmit}
         onEdit={handleEdit}
@@ -676,9 +784,12 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
         onBackup={backupRecipes}
         onCancel={cancelCreateOrEdit}
         onStartCreate={startCreate}
+        onStartCookbook={startCookbookCreate}
         allTags={allTags}
         recipeView={recipeView}
         setRecipeView={setRecipeView}
+        recipeDisplayMode={recipeDisplayMode}
+        setRecipeDisplayMode={setRecipeDisplayMode}
         cookbookNames={cookbookNames}
         selectedCookbook={selectedCookbook}
         setSelectedCookbook={setSelectedCookbook}
