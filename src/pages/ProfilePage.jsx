@@ -1,9 +1,34 @@
+import { useEffect, useState } from 'react'
 import './ProfilePage.css'
 
-function ProfilePage({ recipes = [] }) {
+const goalFields = [
+  { key: 'protein', label: 'Protein' },
+  { key: 'carbs', label: 'Carbs' },
+  { key: 'fat', label: 'Fat' },
+  { key: 'fiber', label: 'Fiber' },
+]
+
+function ProfilePage({ recipes = [], nutritionGoals, onSaveNutritionGoals }) {
+  const [goalDraft, setGoalDraft] = useState(nutritionGoals)
+  const [goalsSaved, setGoalsSaved] = useState(false)
   const favoriteCount = recipes.filter((recipe) => recipe.favorite).length
   const recipeCount = recipes.length
   const cookbooks = [...new Set(recipes.map((recipe) => recipe.cookbook).filter(Boolean))]
+
+  useEffect(() => {
+    setGoalDraft(nutritionGoals)
+  }, [nutritionGoals])
+
+  const updateGoal = (field, value) => {
+    setGoalDraft((current) => ({ ...current, [field]: value }))
+    setGoalsSaved(false)
+  }
+
+  const saveGoals = (event) => {
+    event.preventDefault()
+    onSaveNutritionGoals(goalDraft)
+    setGoalsSaved(true)
+  }
 
   return (
     <div className="page-shell profile-page">
@@ -60,6 +85,59 @@ function ProfilePage({ recipes = [] }) {
             <span className="profile-tag">Family meals</span>
           </div>
         </div>
+
+        <form className="profile-section nutrition-goals-section" onSubmit={saveGoals}>
+          <div>
+            <h3>Cut goals</h3>
+            <p className="goals-help">
+              Set your personal weight and daily macro goals. Add nutrition per serving to a recipe
+              to compare it here.
+            </p>
+          </div>
+
+          <label className="goal-field weight-goal-field">
+            <span>Weight goal</span>
+            <div className="goal-input-with-unit">
+              <input
+                type="number"
+                min="0"
+                step="any"
+                value={goalDraft.weightGoal}
+                onChange={(event) => updateGoal('weightGoal', event.target.value)}
+                placeholder="Optional"
+              />
+              <select
+                aria-label="Weight unit"
+                value={goalDraft.weightUnit}
+                onChange={(event) => updateGoal('weightUnit', event.target.value)}
+              >
+                <option value="lb">lb</option>
+                <option value="kg">kg</option>
+              </select>
+            </div>
+          </label>
+
+          <div className="macro-goal-grid">
+            {goalFields.map(({ key, label }) => (
+              <label className="goal-field" key={key}>
+                <span>{label} <small>g / day</small></span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={goalDraft[key]}
+                  onChange={(event) => updateGoal(key, event.target.value)}
+                  placeholder="Not set"
+                />
+              </label>
+            ))}
+          </div>
+
+          <div className="goals-save-row">
+            <button type="submit" className="profile-edit-button">Save goals</button>
+            {goalsSaved ? <span role="status">Goals saved</span> : null}
+          </div>
+        </form>
       </div>
     </div>
   )

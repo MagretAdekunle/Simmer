@@ -5,10 +5,36 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import RecipesPage from './pages/RecipesPage'
+import { createListItemId, getDateForPlanDay, getWeekStart } from './planning'
 
 const STORAGE_KEY = 'simmer-recipes-v1'
 const BACKUP_KEY = 'simmer-backup-v1'
 const DEFAULT_COOKBOOK = 'Uncategorized'
+
+const INGREDIENT_MEASUREMENT_UNITS = [
+  'fluid ounces', 'fluid ounce', 'tablespoons', 'tablespoon', 'tbsp', 'teaspoons', 'teaspoon', 'tsp',
+  'cups', 'cup', 'pints', 'pint', 'quarts', 'quart', 'gallons', 'gallon', 'milliliters', 'milliliter',
+  'ml', 'liters', 'liter', 'litres', 'litre', 'l', 'kilograms', 'kilogram', 'kg', 'grams', 'gram', 'g',
+  'ounces', 'ounce', 'oz', 'pounds', 'pound', 'lbs', 'lb', 'milligrams', 'milligram', 'mg',
+  'pinches', 'pinch', 'dashes', 'dash', 'cloves', 'clove', 'cans', 'can', 'packages', 'package',
+  'packets', 'packet', 'sticks', 'stick', 'slices', 'slice', 'bunches', 'bunch',
+]
+
+const INGREDIENT_UNIT_PATTERN = new RegExp(
+  `^(?:${INGREDIENT_MEASUREMENT_UNITS
+    .sort((first, second) => second.length - first.length)
+    .map((unit) => unit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|')})\\.?(?:\\b|(?=\\s|$))\\s*(?:of\\s+)?`,
+  'i',
+)
+
+const getIngredientName = (ingredient) => {
+  const amountPattern = /^(?:(?:\d+\s+)?\d+\/\d+|\d+(?:\.\d+)?|[¼½¾⅓⅔⅛⅜⅝⅞])(?:\s*(?:-|–|to)\s*(?:(?:\d+\s+)?\d+\/\d+|\d+(?:\.\d+)?|[¼½¾⅓⅔⅛⅜⅝⅞]))?\s*/i
+  let name = String(ingredient || '').trim().replace(amountPattern, '').replace(/^(?:x|×)\s*/i, '')
+
+  while (INGREDIENT_UNIT_PATTERN.test(name)) name = name.replace(INGREDIENT_UNIT_PATTERN, '').trim()
+  return name.replace(/^[,;:\s]+|[,;:\s]+$/g, '').trim()
+}
 
 // Combine all cookbook names attached to a recipe.
 // This keeps the app cookbook-aware without requiring a separate primary cookbook field.
@@ -20,6 +46,13 @@ const getRecipeCookbooks = (recipe = {}) => {
   return [...new Set(values.map((cookbookName) => String(cookbookName).trim()).filter(Boolean))]
 }
 
+const getRecipeCollections = (recipe = {}) => {
+  const collections = Array.isArray(recipe.collections)
+    ? recipe.collections
+    : String(recipe.collections || '').split(/[\n,]+/)
+  return [...new Set(collections.map((name) => String(name).trim()).filter(Boolean))]
+}
+
 // Blank recipe used by the create form.
 // Update this if you add new recipe fields (for example: meal type, budget, or notes).
 const createBlankRecipe = () => ({
@@ -28,11 +61,16 @@ const createBlankRecipe = () => ({
   ingredients: [],
   instructions: [],
   notes: '',
+  substitutions: '',
   image: '',
   sourceLink: '',
   servings: 2,
   prepTime: 0,
   cookTime: 0,
+  protein: null,
+  carbs: null,
+  fat: null,
+  fiber: null,
   collections: [],
   tags: [],
   cookbook: DEFAULT_COOKBOOK,
@@ -145,6 +183,20 @@ const parseCookbookList = (value) => {
   )]
 }
 
+const parseCollectionList = (value) =>
+  [...new Set(
+    (Array.isArray(value) ? value : String(value || '').split(/[\n,]+/))
+      .map((collectionName) => String(collectionName).trim())
+      .filter(Boolean),
+  )]
+
+const parseOptionalNutrient = (value) => {
+  if (value === '' || value == null) return null
+
+  const parsedValue = Number(value)
+  return Number.isFinite(parsedValue) && parsedValue >= 0 ? parsedValue : null
+}
+
 // Convert stored recipe data into the shape used by the editor form.
 // This is the main place to edit if a new recipe field needs to appear in the create/edit form.
 const toDraft = (recipe = null) => {
@@ -157,15 +209,22 @@ const toDraft = (recipe = null) => {
     ingredients: Array.isArray(baseRecipe.ingredients) ? [...baseRecipe.ingredients] : [],
     instructions: Array.isArray(baseRecipe.instructions) ? [...baseRecipe.instructions] : [],
     notes: baseRecipe.notes ?? '',
+    substitutions: Array.isArray(baseRecipe.substitutions)
+      ? baseRecipe.substitutions.join('\n')
+      : baseRecipe.substitutions ?? '',
     collections: Array.isArray(baseRecipe.collections)
       ? baseRecipe.collections.join(', ')
-      : '',
+      : String(baseRecipe.collections || ''),
     tags: Array.isArray(baseRecipe.tags) ? baseRecipe.tags.join(', ') : '',
     sourceLink: baseRecipe.sourceLink ?? '',
     image: baseRecipe.image ?? '',
     servings: baseRecipe.servings ?? 2,
     prepTime: baseRecipe.prepTime ?? 0,
     cookTime: baseRecipe.cookTime ?? 0,
+    protein: baseRecipe.protein ?? '',
+    carbs: baseRecipe.carbs ?? '',
+    fat: baseRecipe.fat ?? '',
+    fiber: baseRecipe.fiber ?? '',
     cookbook: cookbooks[0] ?? DEFAULT_COOKBOOK,
     cookbooks: cookbooks.length ? cookbooks : [DEFAULT_COOKBOOK],
     cookbookComment: baseRecipe.cookbookComment ?? '',
@@ -175,7 +234,16 @@ const toDraft = (recipe = null) => {
   }
 }
 
-function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRecipeRequested }) {
+function RecipeLibrary({
+  recipes,
+  setRecipes,
+  groceryItems,
+  setGroceryItems,
+  onSetMealPlan,
+  createRecipeRequested,
+  setCreateRecipeRequested,
+  nutritionGoals,
+}) {
   // State shape:
   // - selectedId: recipe currently highlighted in the list
   // - isCreating: whether the user is viewing the create/edit form instead of the gallery
@@ -200,6 +268,7 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
   // These filters are applied before the grid or detail view is rendered.
   const [searchTerm, setSearchTerm] = useState('')
   const [activeTag, setActiveTag] = useState('All')
+  const [activeCollection, setActiveCollection] = useState('All')
   const [activeIngredient, setActiveIngredient] = useState('All')
   const [totalTimeFilter, setTotalTimeFilter] = useState('all')
   const [cookedFilter, setCookedFilter] = useState('all')
@@ -259,13 +328,22 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
   // Build the tag list shown in the sidebar.
   // It includes a synthetic 'All' option before all unique tags from the current library.
   const allTags = useMemo(
-    () => ['All', ...new Set(recipes.flatMap((recipe) => recipe.tags || []))],
+    () => ['All', ...new Set(recipes.flatMap((recipe) => Array.isArray(recipe.tags) ? recipe.tags : []))],
     [recipes],
   )
 
+  const allCollections = useMemo(
+    () => ['All', ...new Set(recipes.flatMap(getRecipeCollections))],
+    [recipes],
+  )
+
+  useEffect(() => {
+    if (!allCollections.includes(activeCollection)) setActiveCollection('All')
+  }, [activeCollection, allCollections])
+
   const allIngredients = useMemo(() => {
     const values = recipes.flatMap((recipe) => recipe.ingredients || [])
-    const ingredients = [...new Set(values.map((ingredient) => String(ingredient).trim()).filter(Boolean))]
+    const ingredients = [...new Set(values.map(getIngredientName).filter(Boolean))]
     return ['All', ...ingredients.sort((a, b) => a.localeCompare(b))]
   }, [recipes])
 
@@ -327,9 +405,10 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
         recipeIngredients.some((ingredient) => ingredient.toLowerCase().includes(normalizedSearch))
 
       const matchesTag = activeTag === 'All' || (recipe.tags || []).includes(activeTag)
+      const matchesCollection = activeCollection === 'All' || getRecipeCollections(recipe).includes(activeCollection)
       const matchesIngredient =
         activeIngredient === 'All' ||
-        recipeIngredients.some((ingredient) => ingredient.toLowerCase() === activeIngredient.toLowerCase())
+        recipeIngredients.some((ingredient) => getIngredientName(ingredient).toLowerCase() === activeIngredient.toLowerCase())
       const matchesTotalTime =
         totalTimeFilter === 'all' ||
         (totalTimeFilter === 'under-30' && totalTime <= 30) ||
@@ -352,6 +431,7 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
       return (
         matchesSearch &&
         matchesTag &&
+        matchesCollection &&
         matchesIngredient &&
         matchesTotalTime &&
         matchesCooked &&
@@ -387,6 +467,7 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
     recipes,
     searchTerm,
     activeTag,
+    activeCollection,
     activeIngredient,
     totalTimeFilter,
     cookedFilter,
@@ -445,12 +526,18 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
       description: draft.description.trim(),
       ingredients: parseIngredientList(draft.ingredients),
       instructions: parseInstructionList(draft.instructions),
+      collections: parseCollectionList(draft.collections),
       notes: draft.notes.trim(),
+      substitutions: parseInstructionList(draft.substitutions),
       image: draft.image.trim(),
       sourceLink: draft.sourceLink.trim(),
       servings: Number(draft.servings) || 1,
       prepTime: Number(draft.prepTime) || 0,
       cookTime: Number(draft.cookTime) || 0,
+      protein: parseOptionalNutrient(draft.protein),
+      carbs: parseOptionalNutrient(draft.carbs),
+      fat: parseOptionalNutrient(draft.fat),
+      fiber: parseOptionalNutrient(draft.fiber),
       tags: parseIngredientList(draft.tags),
       cookbook: firstCookbook,
       cookbooks: normalizedCookbooks,
@@ -513,6 +600,13 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
       ),
     )
     setStatusMessage('Favorite updated')
+  }
+
+  const saveCookingNotes = (recipeId, notes, substitutions) => {
+    setRecipes((currentRecipes) => currentRecipes.map((recipe) => (
+      recipe.id === recipeId ? { ...recipe, notes, substitutions } : recipe
+    )))
+    setStatusMessage('Cooking notes saved')
   }
 
   // Export the current library as JSON for a manual backup or shared file.
@@ -752,6 +846,7 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
       {statusMessage ? <div className="status-banner">{statusMessage}</div> : null}
       <RecipesPage
         recipes={recipeView === 'cookbooks' ? filteredCookbookRecipes : filteredRecipes}
+        nutritionGoals={nutritionGoals}
         selectedId={selectedId}
         setSelectedId={setSelectedId}
         isCreating={isCreating}
@@ -762,6 +857,9 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
         setSearchTerm={setSearchTerm}
         activeTag={activeTag}
         setActiveTag={setActiveTag}
+        activeCollection={activeCollection}
+        setActiveCollection={setActiveCollection}
+        allCollections={allCollections}
         activeIngredient={activeIngredient}
         setActiveIngredient={setActiveIngredient}
         totalTimeFilter={totalTimeFilter}
@@ -780,6 +878,42 @@ function RecipeLibrary({ recipes, setRecipes, createRecipeRequested, setCreateRe
         onEdit={handleEdit}
         onDelete={handleDelete}
         onToggleFavorite={toggleFavorite}
+        onSaveCookingNotes={saveCookingNotes}
+        onAddToGroceries={(recipe) => {
+          const ingredients = [...new Set(
+            (recipe.ingredients || []).map((ingredient) => String(ingredient).trim()).filter(Boolean),
+          )]
+          if (!ingredients.length) return 'This recipe has no ingredients to add.'
+
+          const alreadyAdded = new Set(
+            groceryItems.filter((item) => item.recipeId === recipe.id).map((item) => item.name),
+          )
+          const newItems = ingredients
+            .filter((ingredient) => !alreadyAdded.has(ingredient))
+            .map((name) => ({
+              id: createListItemId(),
+              name,
+              recipeId: recipe.id,
+              checked: false,
+            }))
+
+          if (newItems.length) setGroceryItems((current) => [...current, ...newItems])
+          return newItems.length
+            ? `${newItems.length} ingredient${newItems.length === 1 ? '' : 's'} added to Groceries.`
+            : 'This recipe is already on your shopping list.'
+        }}
+        onAddToMealPlan={(recipeId, day, meal) =>
+          onSetMealPlan((current) => [
+            ...current,
+            {
+              id: createListItemId(),
+              recipeId,
+              day,
+              date: getDateForPlanDay(day, getWeekStart()),
+              meal,
+            },
+          ])
+        }
         onExport={exportRecipes}
         onBackup={backupRecipes}
         onCancel={cancelCreateOrEdit}

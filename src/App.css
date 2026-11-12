@@ -832,3 +832,226 @@ h3 {
 .profile-button:hover {
   transform: translateY(-1px);
 }
+
+:root {
+  color: #25352e;
+  background: #f7f6f1;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --app-ink: #25352e;
+  --app-muted: #78827a;
+  --app-green: #456f91;
+  --app-green-soft: #eaf1f6;
+  --app-blue: #315d49;
+  --app-blue-soft: #e7eee8;
+  --app-red: #b6534d;
+  --app-red-soft: #f8eae6;
+  --app-cream: #f5f0e5;
+  --app-cream-soft: #fbf8f0;
+  --app-paper: #fffdf7;
+  --app-line: #e8e4d9;
+  --app-orange: #da7647;
+  --app-orange-soft: #fbefe6;
+}
+
+body {
+  color: var(--app-ink);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(226, 216, 193, 0.4), transparent 30%),
+    var(--app-cream);
+}
+
+.top-nav {
+  background: rgba(255, 254, 250, 0.94);
+  border-bottom: 1px solid var(--app-line);
+  box-shadow: 0 6px 24px rgba(47, 57, 48, 0.045);
+  backdrop-filter: blur(16px);
+}
+
+.brand-block h1 {
+  color: var(--app-green);
+  letter-spacing: -0.055em;
+}
+
+.brand-block .eyebrow {
+  color: var(--app-orange);
+}
+
+.nav-tabs {
+  gap: 3px;
+  padding: 5px;
+  border: 0;
+  border-radius: 999px;
+  background: #f3f3ed;
+}
+
+.nav-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 999px;
+  padding: 0.52rem 0.82rem;
+  color: #68756c;
+  transition: color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.nav-tab svg,
+.nav-actions .primary-button svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nav-tab:hover {
+  color: var(--app-green);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.nav-tab.active {
+  color: var(--app-green);
+  background: #fffefa;
+  box-shadow: 0 2px 7px rgba(47, 57, 48, 0.08);
+}
+
+.nav-actions .primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--app-green);
+  box-shadow: 0 5px 12px rgba(49, 93, 73, 0.16);
+}
+
+.primary-button {
+  background: var(--app-green);
+  box-shadow: 0 5px 12px rgba(49, 93, 73, 0.15);
+}
+
+.primary-button:hover {
+  box-shadow: 0 8px 18px rgba(49, 93, 73, 0.2);
+}
+
+.secondary-button {
+  background: var(--app-blue-soft);
+  color: #385e7c;
+}
+
+.secondary-button.active {
+  background: #dce9f1;
+  color: #456f91;
+}
+
+.danger-button {
+  background: var(--app-red-soft);
+  color: var(--app-red);
+}
+
+.recipe-source-link {
+  color: var(--app-blue);
+}
+
+.danger-button:hover,
+.grocery-page-button.danger:hover,
+.tiny-button.danger:hover {
+  background: #f2d8d2;
+  color: #963f3b;
+}
+
+.filter-toggle-button:hover,
+.view-tab:hover {
+  border-color: #b8cbd8;
+  color: var(--app-blue);
+}
+
+.recipe-plan-picker,
+.day-macro-item {
+  background: var(--app-cream-soft);
+}
+
+.panel,
+.recipe-grid-panel,
+.recipe-form,
+.recipe-detail,
+.page-card {
+  border-color: var(--app-line);
+  background: var(--app-paper);
+  box-shadow: 0 10px 28px rgba(47, 57, 48, 0.055);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(69, 111, 145, 0.3);
+  outline-offset: 2px;
+}
+
+input[type='checkbox'] {
+  appearance: none;
+  display: inline-grid;
+  place-content: center;
+  width: 21px;
+  height: 21px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1.5px solid #c8d0c6;
+  border-radius: 7px;
+  background: #fffefa;
+  color: #fff;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+
+input[type='checkbox']::before {
+  content: '';
+  width: 10px;
+  height: 6px;
+  border: solid currentColor;
+  border-width: 0 0 2px 2px;
+  transform: rotate(-45deg) scale(0);
+  transition: transform 120ms ease;
+}
+
+input[type='checkbox']:checked {
+  border-color: var(--app-green);
+  background: var(--app-green);
+}
+
+input[type='checkbox']:checked::before {
+  transform: rotate(-45deg) scale(1);
+}
+
+input[type='checkbox']:hover {
+  border-color: var(--app-green);
+  transform: scale(1.04);
+}
+
+@media (max-width: 980px) {
+  .nav-tabs {
+    background: transparent;
+  }
+
+  .nav-tab {
+    gap: 5px;
+    padding: 0.35rem 0.55rem;
+  }
+
+  .nav-tab svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@media (max-width: 620px) {
+  .nav-tab {
+    flex-direction: column;
+    gap: 2px;
+    padding: 0.3rem 0.45rem;
+    font-size: 0.67rem;
+  }
+}

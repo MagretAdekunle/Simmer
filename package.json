@@ -4,14 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node server.js",
     "build": "vite build",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "preview": "vite preview"
+    "preview": "npm run build && node server.js --production",
+    "start": "node server.js --production"
   },
   "dependencies": {
     "react": "^19.3.1",

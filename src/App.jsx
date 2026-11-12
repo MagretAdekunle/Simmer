@@ -12,7 +12,26 @@ import PantryPage from './pages/PantryPage'
 
 
 const STORAGE_KEY = 'simmer-recipes-v1'
+const GOALS_STORAGE_KEY = 'simmer-nutrition-goals-v1'
+const GROCERIES_STORAGE_KEY = 'simmer-groceries-v1'
+const MEAL_PLAN_STORAGE_KEY = 'simmer-meal-plan-v1'
 const DEFAULT_COOKBOOK = 'Uncategorized'
+const DEFAULT_GOALS = {
+  weightGoal: '',
+  weightUnit: 'lb',
+  protein: '',
+  carbs: '',
+  fat: '',
+  fiber: '',
+}
+
+const navigationTabs = [
+  { id: 'recipes', label: 'Recipes', icon: 'M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 1 4 17.5zM4 7h16M8 3v4' },
+  { id: 'meal plan', label: 'Meal Plan', icon: 'M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13H4V6a1 1 0 0 1 1-1zM8 13h3m2 0h3m-8 3h3' },
+  { id: 'groceries', label: 'Groceries', icon: 'M3 5h2l2.2 10.1a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 1.9-1.4L21 8H6M10 20h.01M17 20h.01' },
+  { id: 'discover', label: 'Discover', icon: 'M12 21s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12zM12 6l1.5 3.5L17 11l-3.5 1.5L12 16l-1.5-3.5L7 11l3.5-1.5z' },
+  { id: 'pantry', label: 'Pantry', icon: 'M5 7h14l-1 14H6L5 7zm2 0V5a5 5 0 0 1 10 0v2m-5 4v5' },
+]
 
 // Demo data used until the user adds or stores their own recipes.
 const sampleRecipes = [
@@ -89,6 +108,17 @@ function App() {
   // Tracks which section of the app is currently visible.
   const [activeTab, setActiveTab] = useState('recipes')
 
+  const [nutritionGoals, setNutritionGoals] = useState(() => {
+    const storedGoals = localStorage.getItem(GOALS_STORAGE_KEY)
+    if (!storedGoals) return DEFAULT_GOALS
+
+    try {
+      return { ...DEFAULT_GOALS, ...JSON.parse(storedGoals) }
+    } catch {
+      return DEFAULT_GOALS
+    }
+  })
+
   // A one-time signal used to tell the recipe library to open a blank creation form.
   const [createRecipeRequested, setCreateRecipeRequested] = useState(false)
 
@@ -106,26 +136,69 @@ function App() {
     }
   })
 
+  const [groceryItems, setGroceryItems] = useState(() => {
+    try {
+      const storedItems = JSON.parse(localStorage.getItem(GROCERIES_STORAGE_KEY) || '[]')
+      return Array.isArray(storedItems) ? storedItems : []
+    } catch {
+      return []
+    }
+  })
+
+  const [mealPlan, setMealPlan] = useState(() => {
+    try {
+      const storedPlan = JSON.parse(localStorage.getItem(MEAL_PLAN_STORAGE_KEY) || '[]')
+      return Array.isArray(storedPlan) ? storedPlan : []
+    } catch {
+      return []
+    }
+  })
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes))
   }, [recipes])
 
+  useEffect(() => {
+    localStorage.setItem(GROCERIES_STORAGE_KEY, JSON.stringify(groceryItems))
+  }, [groceryItems])
+
+  useEffect(() => {
+    localStorage.setItem(MEAL_PLAN_STORAGE_KEY, JSON.stringify(mealPlan))
+  }, [mealPlan])
+
+  useEffect(() => {
+    localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(nutritionGoals))
+  }, [nutritionGoals])
+
   // Route the selected app tab to the right page component.
   const renderPage = () => {
     if (activeTab === 'meal plan') {
-      return <MealPlanPage recipes={recipes} />
+      return (
+        <MealPlanPage
+          recipes={recipes}
+          mealPlan={mealPlan}
+          setMealPlan={setMealPlan}
+          nutritionGoals={nutritionGoals}
+        />
+      )
     }
 
     if (activeTab === 'groceries') {
-      return <GroceriesPage recipes={recipes} />
+      return <GroceriesPage recipes={recipes} groceryItems={groceryItems} setGroceryItems={setGroceryItems} />
     }
 
     if (activeTab === 'discover') {
       return <DiscoverPage recipes={recipes} />
     }
 
-     if (activeTab === 'profile') {
-      return <ProfilePage recipes={recipes} />
+    if (activeTab === 'profile') {
+      return (
+        <ProfilePage
+          recipes={recipes}
+          nutritionGoals={nutritionGoals}
+          onSaveNutritionGoals={setNutritionGoals}
+        />
+      )
     }
 
     if (activeTab === 'pantry') {
@@ -136,6 +209,10 @@ function App() {
       <RecipeLibrary
         recipes={recipes}
         setRecipes={setRecipes}
+        groceryItems={groceryItems}
+        setGroceryItems={setGroceryItems}
+        onSetMealPlan={setMealPlan}
+        nutritionGoals={nutritionGoals}
         createRecipeRequested={createRecipeRequested}
         setCreateRecipeRequested={setCreateRecipeRequested}
       />
@@ -151,14 +228,17 @@ function App() {
         </div>
 
         <nav className="nav-tabs" aria-label="Main navigation">
-          {['recipes', 'meal plan', 'groceries', 'discover', 'pantry'].map((tab) => (
+          {navigationTabs.map((tab) => (
             <button
-              key={tab}
+              key={tab.id}
               type="button"
-              className={activeTab === tab ? 'nav-tab active' : 'nav-tab'}
-              onClick={() => setActiveTab(tab)}
+              className={activeTab === tab.id ? 'nav-tab active' : 'nav-tab'}
+              onClick={() => setActiveTab(tab.id)}
             >
-              {tab === 'meal plan' ? 'Meal Plan' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d={tab.icon} />
+              </svg>
+              <span>{tab.label}</span>
             </button>
           ))}
         </nav>
@@ -173,6 +253,9 @@ function App() {
               setCreateRecipeRequested(true)
             }}
           >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
             Add recipe
           </button>
 

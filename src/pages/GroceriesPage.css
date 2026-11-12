@@ -1,10 +1,49 @@
-/* Grocery page styles.
-   This file styles the shopping list and the page shell for the Groceries tab.
-   If you want to change list spacing, card styling, or display format, edit this file.
-*/
-
-.groceries-page {
+.groceries-page,
+.meal-plan-page {
   min-height: 60vh;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.grocery-heading,
+.meal-plan-heading,
+.plan-day-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.grocery-heading p,
+.meal-plan-heading p {
+  margin: 4px 0 0;
+  color: #6b7280;
+}
+
+.grocery-add-form {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.grocery-add-form input,
+.grocery-item-content input {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid #eaded4;
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px 12px;
 }
 
 .grocery-list {
@@ -16,10 +55,76 @@
   gap: 10px;
 }
 
-.grocery-list li {
-  background: #fffaf5;
-  border: 1px solid #f0e0d4;
-  border-radius: 12px;
+.grocery-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fffefa;
+  border: 1px solid #e7e8df;
+  border-radius: 16px;
   padding: 12px 14px;
-  font-weight: 600;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.grocery-list-item:has(input[type='checkbox']:checked) {
+  border-color: #bfd0dc;
+  background: #f2f6f9;
+}
+
+.grocery-list-item > input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  accent-color: #ea580c;
+}
+
+.grocery-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.grocery-item-content small {
+  display: block;
+  margin: 4px 0 0 2px;
+  color: #6b7280;
+}
+
+.grocery-list-item.checked .grocery-item-content input {
+  color: #6b7280;
+  text-decoration: line-through;
+}
+
+.grocery-empty-state,
+.plan-empty-day {
+  color: #6b7280;
+}
+
+.grocery-page-button {
+  flex: 0 0 auto;
+  border: 1px solid #d6b0a0;
+  background: #fff7f4;
+  color: #7c2d12;
+  border-radius: 10px;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.grocery-page-button.danger {
+  border-color: #f3c7bf;
+  background: #fff1f2;
+  color: #9a1b2a;
+}
+
+@media (max-width: 560px) {
+  .grocery-heading,
+  .grocery-add-form,
+  .grocery-list-item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .grocery-list-item > input[type='checkbox'] {
+    align-self: flex-start;
+  }
 }
