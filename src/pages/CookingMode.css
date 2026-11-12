@@ -94,6 +94,14 @@
 .serving-control input {
   width: 72px;
   text-align: center;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.serving-control input::-webkit-inner-spin-button,
+.serving-control input::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
 }
 
 .cooking-ingredients {

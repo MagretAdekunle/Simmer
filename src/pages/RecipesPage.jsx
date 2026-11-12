@@ -106,6 +106,8 @@ function RecipesPage({
   onEdit,
   onDelete,
   onToggleFavorite,
+  onUpdateRecipeTags,
+  onUpdateRecipeStatus,
   onSaveCookingNotes,
   onAddToGroceries,
   onAddToMealPlan,
@@ -734,6 +736,8 @@ function RecipesPage({
             onEdit={onEdit}
             onDelete={onDelete}
             onToggleFavorite={onToggleFavorite}
+            onUpdateRecipeTags={onUpdateRecipeTags}
+            onUpdateRecipeStatus={onUpdateRecipeStatus}
             onSaveCookingNotes={onSaveCookingNotes}
             onAddToGroceries={onAddToGroceries}
             onAddToMealPlan={onAddToMealPlan}

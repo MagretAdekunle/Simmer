@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react'
 import CookingMode from './CookingMode'
 import { MEAL_PLAN_DAYS, MEAL_TYPES } from '../planning'
-import { normalizeNameList, normalizeRecipeUrl, recipeMacros } from './recipePageUtils'
+import { convertIngredient } from './recipeMeasurements'
+import { normalizeNameList, recipeMacros } from './recipePageUtils'
 
 function RecipeDetail({
   recipe,
@@ -11,22 +12,31 @@ function RecipeDetail({
   onEdit,
   onDelete,
   onToggleFavorite,
+  onUpdateRecipeTags,
+  onUpdateRecipeStatus,
   onSaveCookingNotes,
   onAddToGroceries,
   onAddToMealPlan,
 }) {
+  const baseServings = Math.max(1, Number(recipe.servings) || 1)
   const [isCooking, setIsCooking] = useState(false)
   const [showMealPlanPicker, setShowMealPlanPicker] = useState(false)
   const [mealPlanDay, setMealPlanDay] = useState(MEAL_PLAN_DAYS[0])
   const [mealPlanType, setMealPlanType] = useState('Dinner')
   const [actionMessage, setActionMessage] = useState('')
   const [checkedIngredients, setCheckedIngredients] = useState([])
+  const [servings, setServings] = useState(baseServings)
+  const [measurementSystem, setMeasurementSystem] = useState('original')
+  const [newTag, setNewTag] = useState('')
 
   useEffect(() => {
     setIsCooking(false)
     setShowMealPlanPicker(false)
     setActionMessage('')
     setCheckedIngredients([])
+    setServings(baseServings)
+    setMeasurementSystem('original')
+    setNewTag('')
   }, [recipe.id])
 
   if (isCooking) {
@@ -35,6 +45,8 @@ function RecipeDetail({
         recipe={recipe}
         onClose={() => setIsCooking(false)}
         onSaveNotes={(notes, substitutions) => onSaveCookingNotes(recipe.id, notes, substitutions)}
+        initialServings={servings}
+        initialMeasurementSystem={measurementSystem}
       />
     )
   }
@@ -42,7 +54,13 @@ function RecipeDetail({
   const collections = normalizeNameList(recipe.collections)
   const tags = normalizeNameList(recipe.tags)
   const substitutions = normalizeNameList(recipe.substitutions)
-  const sourceUrl = normalizeRecipeUrl(recipe.sourceLink || '')
+  const addTag = (event) => {
+    event.preventDefault()
+    const tag = newTag.trim()
+    if (!tag || tags.some((existingTag) => existingTag.toLocaleLowerCase() === tag.toLocaleLowerCase())) return
+    onUpdateRecipeTags(recipe.id, [...tags, tag])
+    setNewTag('')
+  }
 
   return (
     <article className="recipe-detail recipe-detail-page">
@@ -65,14 +83,60 @@ function RecipeDetail({
       {recipe.description ? <p className="recipe-description">{recipe.description}</p> : null}
 
       <div className="recipe-meta">
-        <span>{recipe.servings} servings</span>
+        <span>{servings} servings</span>
         <span>Prep {recipe.prepTime} min</span>
         <span>Cook {recipe.cookTime} min</span>
         <span>Total {Number(recipe.prepTime || 0) + Number(recipe.cookTime || 0)} min</span>
-        <span>{recipe.cooked ? 'Cooked' : 'Not cooked'}</span>
-        <span>{Number(recipe.rating || 0) > 0 ? `Rating ${Number(recipe.rating).toFixed(1)} / 5` : 'Unrated'}</span>
-        <span>{recipe.cookbook || 'Uncategorized'}</span>
       </div>
+
+      <section className="recipe-status-panel" aria-label="Recipe cooking status and rating">
+        <button
+          type="button"
+          className={recipe.cooked ? 'recipe-cooked-toggle active' : 'recipe-cooked-toggle'}
+          role="switch"
+          aria-checked={Boolean(recipe.cooked)}
+          onClick={() => onUpdateRecipeStatus(recipe.id, { cooked: !recipe.cooked })}
+        >
+          <span className="recipe-cooked-check" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
+          </span>
+          <span>{recipe.cooked ? 'Marked as cooked' : 'Mark as cooked'}</span>
+        </button>
+
+        <fieldset className="recipe-detail-rating">
+          <legend>Your rating</legend>
+          <div className="recipe-rating-control" role="group" aria-label="Rate this recipe">
+            {[1, 2, 3, 4, 5].map((rating) => (
+              <button
+                type="button"
+                key={rating}
+                className={Number(recipe.rating || 0) >= rating ? 'rating-star selected' : 'rating-star'}
+                aria-label={`Rate ${rating} out of 5`}
+                aria-pressed={Number(recipe.rating || 0) === rating}
+                onClick={() => onUpdateRecipeStatus(recipe.id, { rating })}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+                </svg>
+              </button>
+            ))}
+            {Number(recipe.rating || 0) > 0 ? (
+              <button
+                type="button"
+                className="rating-clear"
+                onClick={() => onUpdateRecipeStatus(recipe.id, { rating: 0 })}
+              >
+                Clear
+              </button>
+            ) : null}
+          </div>
+          <span className="rating-help">
+            {Number(recipe.rating || 0) > 0
+              ? `${Number(recipe.rating).toFixed(0)} out of 5`
+              : 'Tap a star to rate this recipe'}
+          </span>
+        </fieldset>
+      </section>
 
       <div className="recipe-planning-actions">
         <button
@@ -125,20 +189,123 @@ function RecipeDetail({
       ) : null}
       {actionMessage ? <p className="recipe-action-message" role="status">{actionMessage}</p> : null}
 
-      {(collections.length || tags.length) ? (
+      {collections.length ? (
         <div className="recipe-taxonomy">
           {collections.map((collection) => (
             <span className="recipe-collection-pill" key={`collection-${collection}`}>{collection}</span>
           ))}
-          {tags.map((tag) => <span className="recipe-tag-pill" key={`tag-${tag}`}>{tag}</span>)}
         </div>
       ) : null}
 
-      {sourceUrl ? (
-        <a className="recipe-source-link" href={sourceUrl} target="_blank" rel="noopener noreferrer">
-          View original recipe
-        </a>
+      {recipe.cookbookComment ? (
+        <div className="detail-sections">
+          <section>
+            <h3>Cookbook note</h3>
+            <p>{recipe.cookbookComment}</p>
+          </section>
+        </div>
       ) : null}
+
+      {recipe.notes ? (
+        <div className="detail-sections">
+          <section>
+            <h3>Notes</h3>
+            <p>{recipe.notes}</p>
+          </section>
+        </div>
+      ) : null}
+
+      {substitutions.length ? (
+        <div className="detail-sections">
+          <section>
+            <h3>Substitutions</h3>
+            <ul>{substitutions.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul>
+          </section>
+        </div>
+      ) : null}
+
+      <section className="recipe-measurement-panel" aria-label="Adjust recipe measurements">
+        <div className="recipe-measurement-controls">
+          <label>
+            <span>Servings</span>
+            <div className="recipe-serving-control">
+              <button
+                type="button"
+                aria-label="Decrease servings"
+                disabled={servings <= 1}
+                onClick={() => setServings((value) => Math.max(1, value - 1))}
+              >
+                −
+              </button>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                aria-label="Recipe servings"
+                value={servings}
+                onChange={(event) => {
+                  const value = Number(event.target.value)
+                  if (Number.isInteger(value) && value > 0) setServings(value)
+                }}
+              />
+              <button
+                type="button"
+                aria-label="Increase servings"
+                onClick={() => setServings((value) => value + 1)}
+              >
+                +
+              </button>
+            </div>
+          </label>
+          <label>
+            <span>Measurements</span>
+            <select
+              value={measurementSystem}
+              onChange={(event) => setMeasurementSystem(event.target.value)}
+            >
+              <option value="original">Original</option>
+              <option value="us">US</option>
+              <option value="metric">Metric</option>
+            </select>
+          </label>
+        </div>
+        <p className="recipe-serving-scale-note">Scaled from {baseServings} original serving{baseServings === 1 ? '' : 's'}.</p>
+      </section>
+
+      <div className="detail-sections recipe-instructions-sections">
+        <section>
+          <h3>Ingredients</h3>
+          <ul className="recipe-ingredient-checklist">
+            {(recipe.ingredients || []).map((ingredient, index) => (
+              <li key={`${index}-${ingredient}`} className={checkedIngredients.includes(index) ? 'checked' : ''}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={checkedIngredients.includes(index)}
+                    onChange={() => setCheckedIngredients((current) => (
+                      current.includes(index)
+                        ? current.filter((checkedIndex) => checkedIndex !== index)
+                        : [...current, index]
+                    ))}
+                    aria-label={`Mark ${ingredient} as prepared`}
+                  />
+                  <span>{convertIngredient(String(ingredient), baseServings, servings, measurementSystem)}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section>
+          <div className="instructions-heading">
+            <h3>Instructions</h3>
+            <button type="button" className="primary-button" onClick={() => setIsCooking(true)}>
+              Start cooking
+            </button>
+          </div>
+          <ol>{(recipe.instructions || []).map((instruction, index) => <li key={`${index}-${instruction}`}>{instruction}</li>)}</ol>
+        </section>
+      </div>
 
       <section className="nutrition-comparison">
         <div>
@@ -174,67 +341,38 @@ function RecipeDetail({
         </div>
       </section>
 
-      {recipe.cookbookComment ? (
-        <div className="detail-sections">
-          <section>
-            <h3>Cookbook note</h3>
-            <p>{recipe.cookbookComment}</p>
-          </section>
+      <section className="recipe-tags-editor">
+        <div>
+          <h3>Tags</h3>
+          <p>Use tags to organize and filter this recipe.</p>
         </div>
-      ) : null}
-
-      {recipe.notes ? (
-        <div className="detail-sections">
-          <section>
-            <h3>Notes</h3>
-            <p>{recipe.notes}</p>
-          </section>
-        </div>
-      ) : null}
-
-      {substitutions.length ? (
-        <div className="detail-sections">
-          <section>
-            <h3>Substitutions</h3>
-            <ul>{substitutions.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul>
-          </section>
-        </div>
-      ) : null}
-
-      <div className="detail-sections">
-        <section>
-          <h3>Ingredients</h3>
-          <ul className="recipe-ingredient-checklist">
-            {(recipe.ingredients || []).map((ingredient, index) => (
-              <li key={`${index}-${ingredient}`} className={checkedIngredients.includes(index) ? 'checked' : ''}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={checkedIngredients.includes(index)}
-                    onChange={() => setCheckedIngredients((current) => (
-                      current.includes(index)
-                        ? current.filter((checkedIndex) => checkedIndex !== index)
-                        : [...current, index]
-                    ))}
-                    aria-label={`Mark ${ingredient} as prepared`}
-                  />
-                  <span>{ingredient}</span>
-                </label>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section>
-          <div className="instructions-heading">
-            <h3>Instructions</h3>
-            <button type="button" className="primary-button" onClick={() => setIsCooking(true)}>
-              Start cooking
+        <div className="recipe-tags-list" aria-label="Recipe tags">
+          {tags.map((tag) => (
+            <button
+              type="button"
+              className="recipe-tag-pill"
+              key={`tag-${tag}`}
+              aria-label={`Remove tag ${tag}`}
+              onClick={() => onUpdateRecipeTags(recipe.id, tags.filter((existingTag) => existingTag !== tag))}
+            >
+              {tag}<span aria-hidden="true"> ×</span>
             </button>
-          </div>
-          <ol>{(recipe.instructions || []).map((instruction, index) => <li key={`${index}-${instruction}`}>{instruction}</li>)}</ol>
-        </section>
-      </div>
+          ))}
+          {!tags.length ? <span className="recipe-tags-empty">No tags added yet.</span> : null}
+        </div>
+        <form className="recipe-tag-add-form" onSubmit={addTag}>
+          <label className="sr-only" htmlFor="recipe-tag-input">Add a tag</label>
+          <input
+            id="recipe-tag-input"
+            value={newTag}
+            onChange={(event) => setNewTag(event.target.value)}
+            placeholder="e.g. Quick, Vegetarian"
+          />
+          <button type="submit" className="secondary-button" disabled={!newTag.trim()}>
+            Add tag
+          </button>
+        </form>
+      </section>
     </article>
   )
 }

@@ -602,6 +602,24 @@ function RecipeLibrary({
     setStatusMessage('Favorite updated')
   }
 
+  const updateRecipeTags = (recipeId, tags) => {
+    const uniqueTags = [...new Map(
+      tags.map((tag) => [String(tag).trim().toLocaleLowerCase(), String(tag).trim()]),
+    ).values()].filter(Boolean)
+
+    setRecipes((currentRecipes) => currentRecipes.map((recipe) => (
+      recipe.id === recipeId ? { ...recipe, tags: uniqueTags } : recipe
+    )))
+    setStatusMessage('Recipe tags updated')
+  }
+
+  const updateRecipeStatus = (recipeId, updates) => {
+    setRecipes((currentRecipes) => currentRecipes.map((recipe) => (
+      recipe.id === recipeId ? { ...recipe, ...updates } : recipe
+    )))
+    setStatusMessage(updates.cooked !== undefined ? 'Cooking status updated' : 'Recipe rating updated')
+  }
+
   const saveCookingNotes = (recipeId, notes, substitutions) => {
     setRecipes((currentRecipes) => currentRecipes.map((recipe) => (
       recipe.id === recipeId ? { ...recipe, notes, substitutions } : recipe
@@ -878,6 +896,8 @@ function RecipeLibrary({
         onEdit={handleEdit}
         onDelete={handleDelete}
         onToggleFavorite={toggleFavorite}
+        onUpdateRecipeTags={updateRecipeTags}
+        onUpdateRecipeStatus={updateRecipeStatus}
         onSaveCookingNotes={saveCookingNotes}
         onAddToGroceries={(recipe) => {
           const ingredients = [...new Set(

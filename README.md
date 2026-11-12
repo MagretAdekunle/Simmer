@@ -8,7 +8,7 @@ websites do not need to allow cross-origin browser requests.
 ## Features
 
 - Recipe library with create, edit, favorite, and delete flows
-- Recipe details: ingredients, instructions, servings, prep time, cook time, image, and source link
+- Recipe details: ingredients, instructions, adjustable servings, US/metric measurements, prep time, cook time, image, and source link
 - Import recipe details from websites that publish structured recipe metadata
 - Cooking mode with guided steps, independent timers, serving scaling, and US/metric conversions
 - Optional screen-awake support, plus editable cooking notes and substitutions
@@ -149,7 +149,8 @@ App.jsx
 | Recipe grid, filter layout, or page-level recipe workflow coordination | `src/pages/RecipesPage.jsx` and `src/pages/RecipesPage.css` |
 | Add Recipe/Add Cookbook choices or import screens | `src/pages/RecipeCreationFlow.jsx` |
 | Recipe fields, validation UI, or editor controls | `src/pages/RecipeEditor.jsx` |
-| Recipe detail layout, ingredient checklist, or Add to Groceries/Meal Plan actions | `src/pages/RecipeDetail.jsx` |
+| Recipe detail layout, ingredient checklist, serving controls, or Add to Groceries/Meal Plan actions | `src/pages/RecipeDetail.jsx` |
+| Ingredient scaling or US/metric conversions used by recipe and cooking views | `src/pages/recipeMeasurements.js` |
 | Guided cooking, timers, or cooking-step controls | `src/pages/CookingMode.jsx` and `src/pages/CookingMode.css` |
 | Weekly schedule, meal types, week navigation, or daily macros | `src/pages/MealPlanPage.jsx`, `src/planning.js` |
 | Grocery checklist and manual grocery editing | `src/pages/GroceriesPage.jsx` |
