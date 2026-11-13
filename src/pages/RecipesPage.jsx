@@ -76,6 +76,7 @@ const parseTextRecipe = (sourceText) => {
 // Filtering and page-level recipe workflows are coordinated here.
 function RecipesPage({
   recipes = [],
+  allRecipes = [],
   selectedId,
   setSelectedId,
   isCreating,
@@ -445,60 +446,6 @@ function RecipesPage({
             </button>
           </div>
 
-          {recipeView === 'cookbooks' ? (
-            <div className="cookbook-section">
-              {!selectedCookbook && isOrganizing ? (
-                <div className="organize-box">
-                  <label className="organize-label">
-                    <span>New cookbook name</span>
-                    <input
-                      value={cookbookInput}
-                      onChange={(event) => setCookbookInput(event.target.value)}
-                      placeholder="e.g. Sunday Dinner"
-                    />
-                  </label>
-
-                  <div className="organize-help">
-                    <strong>Select recipes</strong>
-                    <small>Choose the recipes you want in this cookbook.</small>
-                  </div>
-
-                  {recipes.length ? (
-                    <div className="organize-list">
-                      {recipes.map((recipe) => (
-                        <label key={recipe.id} className="checkbox-row select-row">
-                          <input
-                            type="checkbox"
-                            checked={organizeSelectedIds.includes(recipe.id)}
-                            onChange={() => toggleCookbookSelection(recipe.id)}
-                          />
-                          <span>{recipe.name}</span>
-                        </label>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  <div className="form-actions">
-                    <button
-                      type="button"
-                      className="secondary-button"
-                      onClick={() => {
-                        setIsOrganizing(false)
-                        setRecipeView('all')
-                        setCookbookInput('')
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button type="button" className="primary-button" onClick={onCreateCookbook}>
-                      Create cookbook
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
           <div className={showCompactFilters ? 'filter-selects expanded' : 'filter-selects'}>
             <label className="toolbar-select">
               <span>Tag</span>
@@ -592,6 +539,15 @@ function RecipesPage({
             <div className="panel-header recipe-grid-header">
               <h2>{showCookbookTiles ? 'Cookbooks' : selectedCookbook ? selectedCookbook : 'Recipes'}</h2>
 
+              {showCookbookTiles ? (
+                <button type="button" className="primary-button cookbook-add-button" onClick={onStartCookbook}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                  Add cookbook
+                </button>
+              ) : null}
+
               {!showCookbookTiles ? (
                 <div className="view-mode-toggle" role="group" aria-label="Recipe layout">
                   <button
@@ -619,7 +575,9 @@ function RecipesPage({
                     onClick={() => {
                       setIsOrganizing(true)
                       setOrganizeSelectedIds(
-                        recipes.filter((recipe) => getRecipeCookbooks(recipe).includes(selectedCookbook)).map((recipe) => recipe.id),
+                        allRecipes
+                          .filter((recipe) => getRecipeCookbooks(recipe).includes(selectedCookbook))
+                          .map((recipe) => recipe.id),
                       )
                       setCookbookInput(selectedCookbook)
                     }}
@@ -636,6 +594,67 @@ function RecipesPage({
                 </div>
               ) : null}
             </div>
+
+            {isOrganizing ? (
+              <div className="organize-box">
+                <label className="organize-label">
+                  <span>{selectedCookbook ? 'Cookbook name' : 'New cookbook name '}</span>
+                  <input
+                    value={cookbookInput}
+                    onChange={(event) => setCookbookInput(event.target.value)}
+                    placeholder={selectedCookbook ? 'Cookbook name' : 'e.g. Sunday Dinner'}
+                  />
+                </label>
+
+                <div className="organize-help">
+                  <strong>{selectedCookbook ? 'Recipes in this cookbook' : 'Select recipes '}</strong>
+                  <small>
+                    {selectedCookbook
+                      ? 'Update the cookbook name and choose which recipes belong in it.'
+                      : 'Choose the recipes you want in this cookbook.'}
+                  </small>
+                </div>
+
+                {allRecipes.length ? (
+                  <div className="organize-list">
+                    {allRecipes.map((recipe) => (
+                      <label key={recipe.id} className="checkbox-row select-row">
+                        <input
+                          type="checkbox"
+                          checked={organizeSelectedIds.includes(recipe.id)}
+                          onChange={() => toggleCookbookSelection(recipe.id)}
+                        />
+                        <span>{recipe.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="empty-state">Add recipes to your library before creating a cookbook.</p>
+                )}
+
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => {
+                      setIsOrganizing(false)
+                      setCookbookInput('')
+                      setOrganizeSelectedIds([])
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={selectedCookbook ? onSaveCookbook : onCreateCookbook}
+                    disabled={!allRecipes.length}
+                  >
+                    {selectedCookbook ? 'Save changes' : 'Create cookbook'}
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
             <div className={showCookbookTiles || recipeDisplayMode === 'grid' ? 'recipe-grid recipe-grid-large' : 'recipe-grid recipe-grid-large recipe-list-layout'}>
               {showCookbookTiles
@@ -744,12 +763,12 @@ function RecipesPage({
           />
         ) : null}
 
-        {!isCreating && !detailView && !visibleRecipes.length ? (
+        {/* {!isCreating && !detailView && !visibleRecipes.length ? (
           <div className="empty-state">
             <h3>No recipes yet</h3>
             <p>Use the Add recipe button to create your first recipe.</p>
           </div>
-        ) : null}
+        ) : null} */}
       </section>
     </div>
   )
