@@ -839,7 +839,7 @@ function RecipeLibrary({
       }),
     )
 
-    setSelectedCookbook(trimmedName)
+    setSelectedCookbook(null)
     setRecipeView('cookbooks')
     setIsOrganizing(false)
     setOrganizeSelectedIds([])
@@ -864,6 +864,7 @@ function RecipeLibrary({
       {statusMessage ? <div className="status-banner">{statusMessage}</div> : null}
       <RecipesPage
         recipes={recipeView === 'cookbooks' ? filteredCookbookRecipes : filteredRecipes}
+        allRecipes={recipes}
         nutritionGoals={nutritionGoals}
         selectedId={selectedId}
         setSelectedId={setSelectedId}
