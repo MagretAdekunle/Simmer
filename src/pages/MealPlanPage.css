@@ -2,6 +2,7 @@
   min-height: 60vh;
 }
 
+
 .meal-plan-heading {
   display: flex;
   align-items: center;
@@ -35,20 +36,54 @@
   gap: 16px;
 }
 
-.plan-day {
+.plan-day-card,
+.plan-day-detail {
   min-width: 0;
-  background: #fffaf5;
+  padding: 18px;
   border: 1px solid #f0e0d4;
   border-radius: 18px;
-  padding: 18px;
+  background: #fffaf5;
+}
+
+/* .plan-day-detail {
+  width: min(100%, 800px);
+  margin-inline: auto;
+} */
+
+.plan-day-card {
+  display: block;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.plan-day-card:hover {
+  border-color: #e6b18e;
+  box-shadow: 0 8px 20px rgb(102 57 29 / 8%);
+  transform: translateY(-2px);
+}
+
+.plan-day-card:focus-visible {
+  outline: 3px solid #ea580c;
+  outline-offset: 3px;
 }
 
 .plan-day-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 12px;
 }
 
+.plan-day-title,
 .plan-day-heading h3 {
+  display: block;
   margin: 0;
+  color: #1f2937;
+  font-size: 1.08rem;
+  font-weight: 800;
 }
 
 .plan-day-date {
@@ -64,6 +99,82 @@
   font-weight: 800;
 }
 
+.plan-day-open-indicator {
+  flex: 0 0 auto;
+  color: #9a5a14;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.plan-week-meal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.plan-week-meal {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 11px;
+}
+
+.plan-week-meal img,
+.plan-week-meal-placeholder {
+  width: 58px;
+  height: 50px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  object-fit: cover;
+  background: #f3e8df;
+}
+
+.plan-week-meal-placeholder {
+  display: grid;
+  place-items: center;
+  color: #9a5a14;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.plan-week-meal-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 3px;
+}
+
+.plan-week-meal-type {
+  color: #9a5a14;
+  font-size: 0.69rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.plan-week-meal-copy strong {
+  overflow: hidden;
+  color: #1f2937;
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plan-week-empty,
+.plan-empty-day {
+  color: #6b7280;
+  font-size: 0.88rem;
+}
+
+.plan-week-empty {
+  display: block;
+  padding: 6px 0 8px;
+}
+
+.plan-day-detail .plan-day-heading {
+  margin-bottom: 18px;
+}
+
 .plan-meal-list {
   display: flex;
   flex-direction: column;
@@ -72,9 +183,9 @@
 
 .plan-meal {
   display: grid;
-  grid-template-columns: minmax(110px, 0.7fr) minmax(150px, 1.3fr) auto;
+  grid-template-columns: minmax(110px, 150px) minmax(150px, 240px) minmax(0, 1fr);
   align-items: end;
-  gap: 8px;
+  gap: 10px;
   padding-top: 10px;
   border-top: 1px solid #f0e0d4;
 }
@@ -82,9 +193,9 @@
 .plan-recipe-preview {
   display: flex;
   align-items: center;
-  gap: 12px;
   grid-column: 1 / -1;
   min-width: 0;
+  gap: 12px;
   padding-bottom: 4px;
 }
 
@@ -109,8 +220,8 @@
 .plan-recipe-preview-copy {
   display: flex;
   flex-direction: column;
-  gap: 3px;
   min-width: 0;
+  gap: 3px;
 }
 
 .plan-recipe-preview-copy span {
@@ -128,9 +239,9 @@
 }
 
 .plan-meal label {
-  min-width: 0;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   gap: 4px;
   color: #6b7280;
   font-size: 0.78rem;
@@ -138,22 +249,23 @@
 }
 
 .plan-meal select {
-  min-width: 0;
   width: 100%;
-  border: 1px solid #eaded4;
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 11px;
+  border: 2px solid #d5dce0;
   border-radius: 10px;
   background: #fff;
-  padding: 9px;
   color: #1f2937;
   font: inherit;
+  font-weight: 600;
 }
 
 .plan-meal .grocery-page-button {
   margin-bottom: 1px;
-}
-
-.plan-empty-day {
-  margin: 0;
+  justify-self: end;
+  width: auto;
+  white-space: nowrap;
 }
 
 .day-macro-summary {
@@ -168,6 +280,21 @@
   font-size: 0.9rem;
 }
 
+.day-macro-compact-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.day-macro-compact-item {
+  min-width: 0;
+}
+
+.day-macro-compact-item .day-macro-label {
+  flex-direction: column;
+  gap: 2px;
+}
+
 .day-macro-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -175,9 +302,9 @@
 }
 
 .day-macro-item {
-  min-width: 0;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   gap: 5px;
   padding: 9px;
   border: 1px solid #f0e0d4;
@@ -262,5 +389,9 @@
 
   .plan-meal {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .day-macro-compact-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

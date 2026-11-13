@@ -8,16 +8,37 @@ const goalFields = [
   { key: 'fiber', label: 'Fiber' },
 ]
 
-function ProfilePage({ recipes = [], nutritionGoals, onSaveNutritionGoals }) {
+function ProfilePage({
+  recipes = [],
+  nutritionGoals,
+  onSaveNutritionGoals,
+  weightEntries = [],
+  onSaveWeightEntries,
+}) {
+  const today = new Date()
+  const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const [goalDraft, setGoalDraft] = useState(nutritionGoals)
+  const [weightDraft, setWeightDraft] = useState({
+    weight: '',
+    unit: nutritionGoals.weightUnit || 'lb',
+    date: todayString,
+  })
   const [goalsSaved, setGoalsSaved] = useState(false)
   const favoriteCount = recipes.filter((recipe) => recipe.favorite).length
   const recipeCount = recipes.length
   const cookbooks = [...new Set(recipes.map((recipe) => recipe.cookbook).filter(Boolean))]
+  const sortedWeightEntries = [...weightEntries].sort((a, b) => (
+    b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || '')
+  ))
+  const latestWeight = sortedWeightEntries[0]
 
   useEffect(() => {
     setGoalDraft(nutritionGoals)
   }, [nutritionGoals])
+
+  useEffect(() => {
+    setWeightDraft((current) => ({ ...current, unit: nutritionGoals.weightUnit || 'lb' }))
+  }, [nutritionGoals.weightUnit])
 
   const updateGoal = (field, value) => {
     setGoalDraft((current) => ({ ...current, [field]: value }))
@@ -28,6 +49,30 @@ function ProfilePage({ recipes = [], nutritionGoals, onSaveNutritionGoals }) {
     event.preventDefault()
     onSaveNutritionGoals(goalDraft)
     setGoalsSaved(true)
+  }
+
+  const saveWeightEntry = (event) => {
+    event.preventDefault()
+    const weight = Number(weightDraft.weight)
+    if (!Number.isFinite(weight) || weight <= 0 || !weightDraft.date) return
+
+    onSaveWeightEntries((current) => [...current, {
+      weight,
+      unit: weightDraft.unit,
+      date: weightDraft.date,
+      createdAt: new Date().toISOString(),
+    }])
+    setWeightDraft((current) => ({ ...current, weight: '' }))
+  }
+
+  const formatWeightChange = (entry, previousEntry) => {
+    if (!previousEntry) return null
+    const entryInPounds = entry.unit === 'kg' ? entry.weight * 2.20462 : entry.weight
+    const previousInPounds = previousEntry.unit === 'kg' ? previousEntry.weight * 2.20462 : previousEntry.weight
+    const change = entryInPounds - previousInPounds
+    const changeInEntryUnit = entry.unit === 'kg' ? change / 2.20462 : change
+    const sign = changeInEntryUnit > 0 ? '+' : ''
+    return `${sign}${changeInEntryUnit.toFixed(1)} ${entry.unit}`
   }
 
   return (
@@ -123,7 +168,7 @@ function ProfilePage({ recipes = [], nutritionGoals, onSaveNutritionGoals }) {
                 <span>{label} <small>g / day</small></span>
                 <input
                   type="number"
-                  min="0"
+                  min="0.0001"
                   step="any"
                   value={goalDraft[key]}
                   onChange={(event) => updateGoal(key, event.target.value)}
@@ -138,6 +183,78 @@ function ProfilePage({ recipes = [], nutritionGoals, onSaveNutritionGoals }) {
             {goalsSaved ? <span role="status">Goals saved</span> : null}
           </div>
         </form>
+
+        <section className="profile-section weight-tracker-section">
+          <div>
+            <h3>Weight history</h3>
+            <p className="goals-help">Log your weight over time to compare your entries. Your history stays on this device.</p>
+          </div>
+
+          {latestWeight ? (
+            <div className="current-weight-card">
+              <span>Current weight</span>
+              <strong>{latestWeight.weight} {latestWeight.unit}</strong>
+              <small>{new Date(`${latestWeight.date}T00:00:00`).toLocaleDateString()}</small>
+            </div>
+          ) : null}
+
+          <form className="weight-entry-form" onSubmit={saveWeightEntry}>
+            <label className="goal-field">
+              <span>Weight</span>
+              <div className="goal-input-with-unit">
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  required
+                  value={weightDraft.weight}
+                  onChange={(event) => setWeightDraft((current) => ({ ...current, weight: event.target.value }))}
+                  placeholder="Enter weight"
+                />
+                <select
+                  aria-label="Weight entry unit"
+                  value={weightDraft.unit}
+                  onChange={(event) => setWeightDraft((current) => ({ ...current, unit: event.target.value }))}
+                >
+                  <option value="lb">lb</option>
+                  <option value="kg">kg</option>
+                </select>
+              </div>
+            </label>
+            <label className="goal-field">
+              <span>Date</span>
+              <input
+                type="date"
+                required
+                value={weightDraft.date}
+                onChange={(event) => setWeightDraft((current) => ({ ...current, date: event.target.value }))}
+              />
+            </label>
+            <button type="submit" className="profile-edit-button">Add weight</button>
+          </form>
+
+          {sortedWeightEntries.length ? (
+            <ol className="weight-history-list">
+              {sortedWeightEntries.map((entry, index) => {
+                const previousEntry = sortedWeightEntries[index + 1]
+                const change = formatWeightChange(entry, previousEntry)
+                return (
+                  <li key={`${entry.date}-${entry.createdAt || index}`}>
+                    <time dateTime={entry.date}>{new Date(`${entry.date}T00:00:00`).toLocaleDateString()}</time>
+                    <strong>{entry.weight} {entry.unit}</strong>
+                    {change ? (
+                      <span className="weight-change">Change: {change}</span>
+                    ) : (
+                      <span className="weight-change">First entry</span>
+                    )}
+                  </li>
+                )
+              })}
+            </ol>
+          ) : (
+            <p className="weight-history-empty">Your weight entries will appear here.</p>
+          )}
+        </section>
       </div>
     </div>
   )

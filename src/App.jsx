@@ -13,6 +13,7 @@ import PantryPage from './pages/PantryPage'
 
 const STORAGE_KEY = 'simmer-recipes-v1'
 const GOALS_STORAGE_KEY = 'simmer-nutrition-goals-v1'
+const WEIGHT_ENTRIES_STORAGE_KEY = 'simmer-weight-entries-v1'
 const GROCERIES_STORAGE_KEY = 'simmer-groceries-v1'
 const MEAL_PLAN_STORAGE_KEY = 'simmer-meal-plan-v1'
 const DEFAULT_COOKBOOK = 'Uncategorized'
@@ -119,6 +120,15 @@ function App() {
     }
   })
 
+  const [weightEntries, setWeightEntries] = useState(() => {
+    try {
+      const storedEntries = JSON.parse(localStorage.getItem(WEIGHT_ENTRIES_STORAGE_KEY) || '[]')
+      return Array.isArray(storedEntries) ? storedEntries : []
+    } catch {
+      return []
+    }
+  })
+
   // A one-time signal used to tell the recipe library to open a blank creation form.
   const [createRecipeRequested, setCreateRecipeRequested] = useState(false)
 
@@ -170,6 +180,10 @@ function App() {
     localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(nutritionGoals))
   }, [nutritionGoals])
 
+  useEffect(() => {
+    localStorage.setItem(WEIGHT_ENTRIES_STORAGE_KEY, JSON.stringify(weightEntries))
+  }, [weightEntries])
+
   // Route the selected app tab to the right page component.
   const renderPage = () => {
     if (activeTab === 'meal plan') {
@@ -197,6 +211,8 @@ function App() {
           recipes={recipes}
           nutritionGoals={nutritionGoals}
           onSaveNutritionGoals={setNutritionGoals}
+          weightEntries={weightEntries}
+          onSaveWeightEntries={setWeightEntries}
         />
       )
     }
