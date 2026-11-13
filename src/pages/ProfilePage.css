@@ -69,6 +69,40 @@
   font-weight: 700;
 }
 
+.profile-edit-form {
+  gap: 0.75rem;
+}
+
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  color: #374151;
+  font-weight: 700;
+}
+
+.profile-field input,
+.profile-field textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #ead9cc;
+  border-radius: 12px;
+  background: #fff;
+  color: #1f2937;
+  font: inherit;
+}
+
+.profile-field textarea {
+  resize: vertical;
+}
+
+.profile-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
 .profile-card > .profile-edit-button {
   align-self: center;
 }
@@ -76,7 +110,9 @@
 .profile-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.9rem;
+  width: min(100%, 360px);
+  align-self: center;
+  gap: 0.25rem;
 }
 
 .profile-stat {

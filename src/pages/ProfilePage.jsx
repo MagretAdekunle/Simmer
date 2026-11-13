@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react'
 import './ProfilePage.css'
 
+const PROFILE_STORAGE_KEY = 'simmer-profile-v1'
+const DEFAULT_PROFILE = {
+  name: 'Magret Adekunle',
+  handle: '@magret-can-cook-777',
+  bio: "I'm literally becoming a machine !",
+  interests: ['Meal prep', 'Quick dinners', 'Vegetarian', 'Family meals'],
+}
+
 const goalFields = [
   { key: 'protein', label: 'Protein' },
   { key: 'carbs', label: 'Carbs' },
@@ -23,14 +31,44 @@ function ProfilePage({
     unit: nutritionGoals.weightUnit || 'lb',
     date: todayString,
   })
+  const [profile, setProfile] = useState(() => {
+    try {
+      const savedProfile = JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY) || 'null')
+      if (!savedProfile || typeof savedProfile !== 'object' || Array.isArray(savedProfile)) return DEFAULT_PROFILE
+
+      return {
+        name: typeof savedProfile.name === 'string' ? savedProfile.name : DEFAULT_PROFILE.name,
+        handle: typeof savedProfile.handle === 'string' ? savedProfile.handle : DEFAULT_PROFILE.handle,
+        bio: typeof savedProfile.bio === 'string' ? savedProfile.bio : DEFAULT_PROFILE.bio,
+        interests: Array.isArray(savedProfile.interests)
+          ? savedProfile.interests.filter((interest) => typeof interest === 'string')
+          : DEFAULT_PROFILE.interests,
+      }
+    } catch {
+      return DEFAULT_PROFILE
+    }
+  })
+  const [profileDraft, setProfileDraft] = useState({ name: '', handle: '', bio: '', interests: '' })
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [goalsSaved, setGoalsSaved] = useState(false)
   const favoriteCount = recipes.filter((recipe) => recipe.favorite).length
   const recipeCount = recipes.length
   const cookbooks = [...new Set(recipes.map((recipe) => recipe.cookbook).filter(Boolean))]
+  const profileInitials = profile.name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((namePart) => namePart.charAt(0))
+    .join('')
+    .toLocaleUpperCase() || 'MA'
   const sortedWeightEntries = [...weightEntries].sort((a, b) => (
     b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || '')
   ))
   const latestWeight = sortedWeightEntries[0]
+
+  useEffect(() => {
+    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile))
+  }, [profile])
 
   useEffect(() => {
     setGoalDraft(nutritionGoals)
@@ -49,6 +87,39 @@ function ProfilePage({
     event.preventDefault()
     onSaveNutritionGoals(goalDraft)
     setGoalsSaved(true)
+  }
+
+  const startProfileEdit = () => {
+    setProfileDraft({
+      name: profile.name,
+      handle: profile.handle,
+      bio: profile.bio,
+      interests: profile.interests.join(', '),
+    })
+    setIsEditingProfile(true)
+  }
+
+  const saveProfile = (event) => {
+    event.preventDefault()
+    const name = profileDraft.name.trim()
+    const rawHandle = profileDraft.handle.trim()
+    if (!name || !rawHandle) return
+
+    const interests = [...new Map(
+      profileDraft.interests
+        .split(/[,\n]+/)
+        .map((interest) => interest.trim())
+        .filter(Boolean)
+        .map((interest) => [interest.toLocaleLowerCase(), interest]),
+    ).values()]
+
+    setProfile({
+      name,
+      handle: rawHandle.startsWith('@') ? rawHandle : `@${rawHandle}`,
+      bio: profileDraft.bio.trim(),
+      interests,
+    })
+    setIsEditingProfile(false)
   }
 
   const saveWeightEntry = (event) => {
@@ -80,10 +151,10 @@ function ProfilePage({
       <div className="page-card profile-card">
         <div className="profile-header">
           <div className="profile-user">
-            <div className="profile-avatar">MA</div>
+            <div className="profile-avatar">{profileInitials}</div>
             <div className="profile-name">
-              <h2>Magret Adekunle</h2>
-              <span className="profile-handle">@magret-can-cook-777</span>
+              <h2>{profile.name}</h2>
+              <span className="profile-handle">{profile.handle}</span>
             </div>
           </div>
 
@@ -108,28 +179,72 @@ function ProfilePage({
           </div>
         </div>
 
-        <button type="button" className="profile-edit-button">
-            Edit profile
-        </button>
-
-        <div className="profile-section">
-          <h3>About</h3>
-          <div className="profile-bio">
-            Food-first home cook with a soft spot for quick weeknight dinners, cozy soups,
-            and meals that feel like a reset. I love organizing recipes by season, mood,
-            and what I already have in the fridge.
-          </div>
-        </div>
-
-        <div className="profile-section">
-          <h3>Interests</h3>
-          <div className="profile-tag-list">
-            <span className="profile-tag">Meal prep</span>
-            <span className="profile-tag">Quick dinners</span>
-            <span className="profile-tag">Vegetarian</span>
-            <span className="profile-tag">Family meals</span>
-          </div>
-        </div>
+        {isEditingProfile ? (
+          <form className="profile-section profile-edit-form" onSubmit={saveProfile}>
+            <label className="profile-field">
+              <span>Name</span>
+              <input
+                autoComplete="name"
+                required
+                value={profileDraft.name}
+                onChange={(event) => setProfileDraft((current) => ({ ...current, name: event.target.value }))}
+              />
+            </label>
+            <label className="profile-field">
+              <span>Handle</span>
+              <input
+                autoComplete="username"
+                required
+                value={profileDraft.handle}
+                onChange={(event) => setProfileDraft((current) => ({ ...current, handle: event.target.value }))}
+              />
+            </label>
+            <label className="profile-field">
+              <span>About</span>
+              <textarea
+                rows="3"
+                value={profileDraft.bio}
+                onChange={(event) => setProfileDraft((current) => ({ ...current, bio: event.target.value }))}
+              />
+            </label>
+            <label className="profile-field">
+              <span>Interests</span>
+              <input
+                value={profileDraft.interests}
+                onChange={(event) => setProfileDraft((current) => ({ ...current, interests: event.target.value }))}
+                placeholder="Separate interests with commas"
+              />
+            </label>
+            <div className="profile-edit-actions">
+              <button type="submit" className="profile-edit-button">Save profile</button>
+              <button type="button" className="secondary-button" onClick={() => setIsEditingProfile(false)}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
+          <>
+            <button type="button" className="profile-edit-button" onClick={startProfileEdit}>
+              Edit profile
+            </button>
+            <div className="profile-section">
+              <h3>About</h3>
+              <div className="profile-bio">{profile.bio || 'No bio added yet.'}</div>
+            </div>
+            <div className="profile-section">
+              <h3>Interests</h3>
+              {profile.interests.length ? (
+                <div className="profile-tag-list">
+                  {profile.interests.map((interest) => (
+                    <span className="profile-tag" key={interest}>{interest}</span>
+                  ))}
+                </div>
+              ) : (
+                <p className="goals-help">No interests added yet.</p>
+              )}
+            </div>
+          </>
+        )}
 
         <form className="profile-section nutrition-goals-section" onSubmit={saveGoals}>
           <div>
