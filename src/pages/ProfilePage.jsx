@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { CancelButton, EditIconButton } from '../ActionButtons'
 import './ProfilePage.css'
 
 const PROFILE_STORAGE_KEY = 'simmer-profile-v1'
@@ -217,16 +218,12 @@ function ProfilePage({
             </label>
             <div className="profile-edit-actions">
               <button type="submit" className="profile-edit-button">Save profile</button>
-              <button type="button" className="secondary-button" onClick={() => setIsEditingProfile(false)}>
-                Cancel
-              </button>
+              <CancelButton onClick={() => setIsEditingProfile(false)} />
             </div>
           </form>
         ) : (
           <>
-            <button type="button" className="profile-edit-button" onClick={startProfileEdit}>
-              Edit profile
-            </button>
+            <EditIconButton className="profile-edit-icon-button" label="Edit profile" onClick={startProfileEdit} />
             <div className="profile-section">
               <h3>About</h3>
               <div className="profile-bio">{profile.bio || 'No bio added yet.'}</div>

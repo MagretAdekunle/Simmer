@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import RecipesPage from './pages/RecipesPage'
 import { createListItemId, getDateForPlanDay, getWeekStart } from './planning'
+import confirmDeletion from './confirmDeletion'
 
 const STORAGE_KEY = 'simmer-recipes-v1'
 const BACKUP_KEY = 'simmer-backup-v1'
@@ -18,6 +19,9 @@ const INGREDIENT_MEASUREMENT_UNITS = [
   'ounces', 'ounce', 'oz', 'pounds', 'pound', 'lbs', 'lb', 'milligrams', 'milligram', 'mg',
   'pinches', 'pinch', 'dashes', 'dash', 'cloves', 'clove', 'cans', 'can', 'packages', 'package',
   'packets', 'packet', 'sticks', 'stick', 'slices', 'slice', 'bunches', 'bunch',
+  'pieces', 'piece', 'stalks', 'stalk', 'sprigs', 'sprig', 'heads', 'head', 'ears', 'ear',
+  'fillets', 'fillet', 'links', 'link', 'sheets', 'sheet', 'servings', 'serving', 'portions', 'portion',
+  'bottles', 'bottle', 'jars', 'jar', 'bags', 'bag', 'boxes', 'box', 'containers', 'container',
 ]
 
 const INGREDIENT_UNIT_PATTERN = new RegExp(
@@ -28,11 +32,29 @@ const INGREDIENT_UNIT_PATTERN = new RegExp(
   'i',
 )
 
-const getIngredientName = (ingredient) => {
-  const amountPattern = /^(?:(?:\d+\s+)?\d+\/\d+|\d+(?:\.\d+)?|[¼½¾⅓⅔⅛⅜⅝⅞])(?:\s*(?:-|–|to)\s*(?:(?:\d+\s+)?\d+\/\d+|\d+(?:\.\d+)?|[¼½¾⅓⅔⅛⅜⅝⅞]))?\s*/i
-  let name = String(ingredient || '').trim().replace(amountPattern, '').replace(/^(?:x|×)\s*/i, '')
+const INGREDIENT_PREPARATION_PREFIX_PATTERN =
+  /^(?:(?:(?:fully|lightly|finely|roughly|coarsely|thinly|thickly)\s+)?(?:boiled|boiling|cooked|chopped|diced|sliced|minced|grated|shredded|crushed|peeled|seeded|drained|rinsed|melted|softened|roasted|toasted|steamed|grilled|baked)\s+)+/i
+const INGREDIENT_AMOUNT_PATTERN = /^(?:(?:\d+\s+)?\d+\/\d+|\d+(?:\.\d+)?|[¼½¾⅓⅔⅛⅜⅝⅞])(?:\s*(?:-|–|to)\s*(?:(?:\d+\s+)?\d+\/\d+|\d+(?:\.\d+)?|[¼½¾⅓⅔⅛⅜⅝⅞]))?\s*/i
+const PARENTHETICAL_INGREDIENT_MEASUREMENT_PATTERN =
+  /^\(\s*\d+(?:\.\d+)?\s*[-–]?\s*(?:fluid\s+ounces?|fl\.?\s*oz|ounces?|oz|pounds?|lbs?|grams?|g|kilograms?|kg|milliliters?|ml|liters?|l)\s*\)\s*/i
 
-  while (INGREDIENT_UNIT_PATTERN.test(name)) name = name.replace(INGREDIENT_UNIT_PATTERN, '').trim()
+const getIngredientName = (ingredient) => {
+  let name = String(ingredient || '').trim()
+
+  while (name) {
+    const previousName = name
+    name = name
+      .replace(INGREDIENT_AMOUNT_PATTERN, '')
+      .replace(/^(?:x|×)\s*/i, '')
+      .replace(PARENTHETICAL_INGREDIENT_MEASUREMENT_PATTERN, '')
+      .replace(/^[–-]\s*/, '')
+
+    while (INGREDIENT_UNIT_PATTERN.test(name)) name = name.replace(INGREDIENT_UNIT_PATTERN, '').trim()
+    if (name === previousName) break
+  }
+
+  name = name.split(/[,;]/, 1)[0].trim()
+  name = name.replace(INGREDIENT_PREPARATION_PREFIX_PATTERN, '').trim()
   return name.replace(/^[,;:\s]+|[,;:\s]+$/g, '').trim()
 }
 
@@ -240,8 +262,6 @@ function RecipeLibrary({
   groceryItems,
   setGroceryItems,
   onSetMealPlan,
-  createRecipeRequested,
-  setCreateRecipeRequested,
   nutritionGoals,
 }) {
   // State shape:
@@ -298,17 +318,6 @@ function RecipeLibrary({
   // This allows multi-select behavior before creating a cookbook group.
   const [organizeSelectedIds, setOrganizeSelectedIds] = useState([])
 
-  // When the top navigation requests a new recipe, this effect opens the blank form.
-  // The request flag is fired by App.jsx and then reset immediately after startCreate().
-  useEffect(() => {
-    if (!createRecipeRequested) {
-      return
-    }
-
-    startCreate()
-    setCreateRecipeRequested(false)
-  }, [createRecipeRequested, setCreateRecipeRequested])
-
   // Keep recipe data synced with localStorage after each change.
   // This gives the app persistence across refreshes without any backend service.
   useEffect(() => {
@@ -343,7 +352,11 @@ function RecipeLibrary({
 
   const allIngredients = useMemo(() => {
     const values = recipes.flatMap((recipe) => recipe.ingredients || [])
-    const ingredients = [...new Set(values.map(getIngredientName).filter(Boolean))]
+    const ingredients = [...new Set(
+      values
+        .map(getIngredientName)
+        .filter((name) => name && name.toLocaleLowerCase() !== 'water'),
+    )]
     return ['All', ...ingredients.sort((a, b) => a.localeCompare(b))]
   }, [recipes])
 
@@ -581,6 +594,9 @@ function RecipeLibrary({
   // Remove a recipe from the saved library.
   // After deleting, the editor is closed and the selection is cleared if the deleted recipe was active.
   const handleDelete = (recipeId) => {
+    const recipe = recipes.find((item) => item.id === recipeId)
+    if (!recipe || !confirmDeletion(recipe.name || 'this recipe')) return
+
     setRecipes((currentRecipes) => currentRecipes.filter((recipe) => recipe.id !== recipeId))
     setStatusMessage('Recipe deleted')
     setIsCreating(false)
@@ -778,7 +794,7 @@ function RecipeLibrary({
   }
 
   const deleteCookbook = (cookbookName = selectedCookbook) => {
-    if (!cookbookName) return
+    if (!cookbookName || !confirmDeletion(`the "${cookbookName}" cookbook`)) return
 
     setRecipes((currentRecipes) =>
       currentRecipes.map((recipe) => {

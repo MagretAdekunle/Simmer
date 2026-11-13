@@ -7,6 +7,8 @@ import {
   MEAL_TYPES,
   toLocalDateString,
 } from '../planning'
+import { BackButton, DeleteIconButton } from '../ActionButtons'
+import confirmDeletion from '../confirmDeletion'
 import './MealPlanPage.css'
 
 const DAILY_MACROS = [
@@ -16,10 +18,13 @@ const DAILY_MACROS = [
   { key: 'fiber', label: 'Fiber' },
 ]
 
-function MealPlanPage({ recipes = [], mealPlan = [], setMealPlan, nutritionGoals = {} }) {
+function MealPlanPage({ recipes = [], foods = [], mealPlan = [], setMealPlan, nutritionGoals = {}, onOpenMyFoods }) {
   const [weekOffset, setWeekOffset] = useState(0)
   const [selectedDate, setSelectedDate] = useState('')
   const [pendingMealSortDate, setPendingMealSortDate] = useState('')
+  const [isAddingFood, setIsAddingFood] = useState(false)
+  const [selectedFoodId, setSelectedFoodId] = useState('')
+  const [selectedFoodMeal, setSelectedFoodMeal] = useState('Dinner')
   const weekStart = getWeekStart(new Date(), weekOffset)
   const weekDates = MEAL_PLAN_DAYS.map((day) => {
     const dateString = getDateForPlanDay(day, weekStart)
@@ -49,8 +54,12 @@ function MealPlanPage({ recipes = [], mealPlan = [], setMealPlan, nutritionGoals
     })
   }
 
-  const getPlannedRecipes = (dayMeals) => dayMeals
-    .map((item) => recipes.find((recipe) => recipe.id === item.recipeId))
+  const getPlannedItem = (item) => item.foodId
+    ? foods.find((food) => food.id === item.foodId)
+    : recipes.find((recipe) => recipe.id === item.recipeId)
+
+  const getPlannedItems = (dayMeals) => dayMeals
+    .map(getPlannedItem)
     .filter(Boolean)
 
   const updateMeal = (mealId, updates) => {
@@ -66,22 +75,40 @@ function MealPlanPage({ recipes = [], mealPlan = [], setMealPlan, nutritionGoals
       date,
       meal: 'Dinner',
       recipeId: '',
+      foodId: '',
     }])
   }
 
-  const removeMeal = (mealId) => {
+  const addFoodToDay = (event, day, date) => {
+    event.preventDefault()
+    if (!selectedFoodId) return
+
+    setMealPlan((items) => [...items, {
+      id: createListItemId(),
+      day,
+      date,
+      meal: selectedFoodMeal,
+      recipeId: '',
+      foodId: selectedFoodId,
+    }])
+    setIsAddingFood(false)
+    setSelectedFoodId('')
+  }
+
+  const removeMeal = (mealId, mealName) => {
+    if (!confirmDeletion(mealName)) return
     setPendingMealSortDate('')
     setMealPlan((items) => items.filter((item) => item.id !== mealId))
   }
 
-  const renderMacroSummary = (day, plannedRecipes, detailed = false) => (
+  const renderMacroSummary = (day, plannedItems, detailed = false) => (
     <section className={detailed ? 'day-macro-summary detailed' : 'day-macro-summary'} aria-label={`${day} macro totals`}>
       <h4>Daily macro totals</h4>
-      {detailed ? <p className="day-macro-note">Based on recipe nutrition per serving.</p> : null}
+      {detailed ? <p className="day-macro-note">Based on recipe and saved food nutrition per serving.</p> : null}
       <div className={detailed ? 'day-macro-grid' : 'day-macro-compact-grid'}>
         {DAILY_MACROS.map(({ key, label }) => {
-          const enteredAmounts = plannedRecipes
-            .map((recipe) => recipe[key])
+          const enteredAmounts = plannedItems
+            .map((item) => item[key])
             .filter((amount) => amount !== '' && amount != null && Number.isFinite(Number(amount)))
           const total = enteredAmounts.reduce((sum, amount) => sum + Number(amount), 0)
           const hasData = enteredAmounts.length > 0
@@ -117,23 +144,23 @@ function MealPlanPage({ recipes = [], mealPlan = [], setMealPlan, nutritionGoals
                       ? total >= goal
                         ? 'Goal reached'
                         : `${Math.round((total / goal) * 100)}% of goal`
-                      : 'Add recipe nutrition to compare'}
+                      : 'Add nutrition details to compare'}
                   </small>
                 </>
               ) : null}
               {detailed && !hasGoal ? (
-                <small>{hasData ? 'Daily goal not set' : 'Add recipe nutrition'}</small>
+                <small>{hasData ? 'Daily goal not set' : 'Add nutrition details'}</small>
               ) : null}
             </div>
           )
         })}
       </div>
-      {detailed && plannedRecipes.some((recipe) =>
+      {detailed && plannedItems.some((item) =>
         DAILY_MACROS.some(({ key }) =>
-          recipe[key] === '' || recipe[key] == null || !Number.isFinite(Number(recipe[key])),
+          item[key] === '' || item[key] == null || !Number.isFinite(Number(item[key])),
         ),
       ) ? (
-        <p className="day-macro-note">Some planned recipes are missing nutrition data, so totals may be incomplete.</p>
+        <p className="day-macro-note">Some planned items are missing nutrition data, so totals may be incomplete.</p>
       ) : null}
     </section>
   )
@@ -149,9 +176,7 @@ function MealPlanPage({ recipes = [], mealPlan = [], setMealPlan, nutritionGoals
           </div>
           <div className="meal-plan-week-navigation" aria-label="Choose week">
             {selectedDay ? (
-              <button type="button" className="grocery-page-button" onClick={() => setSelectedDate('')}>
-                Back to week
-              </button>
+              <BackButton onClick={() => setSelectedDate('')}>Back to week</BackButton>
             ) : null}
             <button
               type="button"
@@ -194,10 +219,10 @@ function MealPlanPage({ recipes = [], mealPlan = [], setMealPlan, nutritionGoals
         </div>
         {selectedDay ? (() => {
           const dayMeals = getDayMeals(selectedDay.day, selectedDay.dateString)
-          const plannedRecipes = getPlannedRecipes(dayMeals)
+          const plannedItems = getPlannedItems(dayMeals)
 
           return (
-            <section className="plan-day-detail">
+            <section className={selectedDay.dateString === today ? 'plan-day-detail today' : 'plan-day-detail'}>
               <div className="plan-day-heading">
                 <div>
                   <h3>{selectedDay.day}</h3>
@@ -208,105 +233,176 @@ function MealPlanPage({ recipes = [], mealPlan = [], setMealPlan, nutritionGoals
                     {formatDayDate.format(selectedDay.date)}{selectedDay.dateString === today ? ' · Today' : ''}
                   </time>
                 </div>
-                <button
-                  type="button"
-                  className="grocery-page-button"
-                  onClick={() => addMeal(selectedDay.day, selectedDay.dateString)}
-                >
-                  Add meal
-                </button>
+                <div className="plan-day-actions">
+                  <button
+                    type="button"
+                    className="grocery-page-button"
+                    onClick={() => addMeal(selectedDay.day, selectedDay.dateString)}
+                  >
+                    Add meal
+                  </button>
+                  <button
+                    type="button"
+                    className="grocery-page-button"
+                    aria-expanded={isAddingFood}
+                    onClick={() => setIsAddingFood((open) => !open)}
+                  >
+                    Add my food
+                  </button>
+                </div>
               </div>
-              {dayMeals.length ? (
-                <div className="plan-meal-list">
-                  {dayMeals.map((item) => (
-                    <div
-                      className="plan-meal"
-                      key={item.id}
-                      onBlur={(event) => {
-                        if (!event.currentTarget.contains(event.relatedTarget)) {
-                          setPendingMealSortDate('')
-                        }
-                      }}
-                    >
-                      {recipes.find((recipe) => recipe.id === item.recipeId) ? (
-                        <div className="plan-recipe-preview">
-                          {recipes.find((recipe) => recipe.id === item.recipeId).image ? (
-                            <img
-                              src={recipes.find((recipe) => recipe.id === item.recipeId).image}
-                              alt=""
-                            />
-                          ) : (
-                            <div className="plan-recipe-image-placeholder" aria-hidden="true">
-                              {recipes.find((recipe) => recipe.id === item.recipeId).name?.charAt(0) || '?'}
-                            </div>
-                          )}
-                          <div className="plan-recipe-preview-copy">
-                            <span>{item.meal}</span>
-                            <strong>{recipes.find((recipe) => recipe.id === item.recipeId).name || 'Untitled recipe'}</strong>
-                          </div>
-                        </div>
-                      ) : null}
+              {isAddingFood ? (
+                <form
+                  className="plan-add-food-form"
+                  onSubmit={(event) => addFoodToDay(event, selectedDay.day, selectedDay.dateString)}
+                >
+                  {foods.length ? (
+                    <>
+                      <label>
+                        <span>Food</span>
+                        <select
+                          value={selectedFoodId}
+                          onChange={(event) => setSelectedFoodId(event.target.value)}
+                          required
+                        >
+                          <option value="">Choose a saved food</option>
+                          {foods.map((food) => (
+                            <option key={food.id} value={food.id}>{food.name}</option>
+                          ))}
+                        </select>
+                      </label>
                       <label>
                         <span>Meal</span>
                         <select
-                          aria-label={`${selectedDay.day} meal type`}
-                          value={item.meal}
-                          onChange={(event) => {
-                            setPendingMealSortDate(selectedDay.dateString)
-                            updateMeal(item.id, { meal: event.target.value })
-                          }}
+                          value={selectedFoodMeal}
+                          onChange={(event) => setSelectedFoodMeal(event.target.value)}
                         >
                           {MEAL_TYPES.map((meal) => (
                             <option key={meal} value={meal}>{meal}</option>
                           ))}
                         </select>
                       </label>
-                      <label>
-                        <span>Recipe</span>
-                        <select
-                          aria-label={`${selectedDay.day} recipe`}
-                          value={item.recipeId || ''}
-                          onChange={(event) => {
-                            setPendingMealSortDate(selectedDay.dateString)
-                            updateMeal(item.id, { recipeId: event.target.value })
-                          }}
-                        >
-                          <option value="">Choose a recipe</option>
-                          {item.recipeId && !recipes.some((recipe) => recipe.id === item.recipeId) ? (
-                            <option value={item.recipeId}>Recipe unavailable</option>
-                          ) : null}
-                          {recipes.map((recipe) => (
-                            <option key={recipe.id} value={recipe.id}>{recipe.name || 'Untitled recipe'}</option>
-                          ))}
-                        </select>
-                      </label>
-                      <button
-                        type="button"
-                        className="grocery-page-button danger"
-                        aria-label={`Remove ${selectedDay.day} ${item.meal}`}
-                        onClick={() => removeMeal(item.id)}
-                      >
-                        Remove
+                      <button type="submit" className="grocery-page-button">Add to day</button>
+                    </>
+                  ) : (
+                    <p className="plan-add-food-empty">
+                      No saved foods yet.{' '}
+                      <button type="button" className="plan-inline-link" onClick={onOpenMyFoods}>
+                        Add a food in My Foods
                       </button>
-                    </div>
-                  ))}
+                    </p>
+                  )}
+                </form>
+              ) : null}
+              {dayMeals.length ? (
+                <div className="plan-meal-list">
+                  {dayMeals.map((item) => {
+                    const plannedItem = getPlannedItem(item)
+                    const image = plannedItem?.image || plannedItem?.labelImage
+
+                    return (
+                      <div
+                        className="plan-meal"
+                        key={item.id}
+                        onBlur={(event) => {
+                          if (!event.currentTarget.contains(event.relatedTarget)) {
+                            setPendingMealSortDate('')
+                          }
+                        }}
+                      >
+                        {plannedItem ? (
+                          <div className="plan-recipe-preview">
+                            {image ? (
+                              <img src={image} alt="" />
+                            ) : (
+                              <div className="plan-recipe-image-placeholder" aria-hidden="true">
+                                {plannedItem.name?.charAt(0) || '?'}
+                              </div>
+                            )}
+                            <div className="plan-recipe-preview-copy">
+                              <span>{item.meal}</span>
+                              <strong>{plannedItem.name || 'Untitled item'}</strong>
+                            </div>
+                          </div>
+                        ) : null}
+                        <label>
+                          <span>Meal</span>
+                          <select
+                            aria-label={`${selectedDay.day} meal type`}
+                            value={item.meal}
+                            onChange={(event) => {
+                              setPendingMealSortDate(selectedDay.dateString)
+                              updateMeal(item.id, { meal: event.target.value })
+                            }}
+                          >
+                            {MEAL_TYPES.map((meal) => (
+                              <option key={meal} value={meal}>{meal}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label>
+                          <span>Item</span>
+                          <select
+                            aria-label={`${selectedDay.day} planned item`}
+                            value={item.foodId ? `food:${item.foodId}` : item.recipeId ? `recipe:${item.recipeId}` : ''}
+                            onChange={(event) => {
+                              setPendingMealSortDate(selectedDay.dateString)
+                              const selectedValue = event.target.value
+                              const separatorIndex = selectedValue.indexOf(':')
+                              const itemType = selectedValue.slice(0, separatorIndex)
+                              const itemId = selectedValue.slice(separatorIndex + 1)
+                              updateMeal(item.id, {
+                                recipeId: itemType === 'recipe' ? itemId : '',
+                                foodId: itemType === 'food' ? itemId : '',
+                              })
+                            }}
+                          >
+                            <option value="">Choose a recipe or food</option>
+                            {item.recipeId && !recipes.some((recipe) => recipe.id === item.recipeId) ? (
+                              <option value={`recipe:${item.recipeId}`}>Recipe unavailable</option>
+                            ) : null}
+                            {item.foodId && !foods.some((food) => food.id === item.foodId) ? (
+                              <option value={`food:${item.foodId}`}>Food unavailable</option>
+                            ) : null}
+                            <optgroup label="Recipes">
+                              {recipes.map((recipe) => (
+                                <option key={recipe.id} value={`recipe:${recipe.id}`}>{recipe.name || 'Untitled recipe'}</option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="My Foods">
+                              {foods.map((food) => (
+                                <option key={food.id} value={`food:${food.id}`}>{food.name}</option>
+                              ))}
+                            </optgroup>
+                          </select>
+                        </label>
+                        <DeleteIconButton
+                          label={`Remove ${selectedDay.day} ${item.meal}`}
+                          onClick={() => removeMeal(
+                            item.id,
+                            `${plannedItem?.name || `${selectedDay.day} ${item.meal}`} from your meal plan`,
+                          )}
+                        />
+                      </div>
+                    )
+                  })}
                 </div>
               ) : (
                 <p className="plan-empty-day">No meals planned.</p>
               )}
-              {renderMacroSummary(selectedDay.day, plannedRecipes, true)}
+              {renderMacroSummary(selectedDay.day, plannedItems, true)}
             </section>
           )
         })() : (
           <div className="plan-grid">
             {weekDates.map(({ day, dateString, date }) => {
               const dayMeals = getDayMeals(day, dateString)
-              const plannedRecipes = getPlannedRecipes(dayMeals)
+              const plannedItems = getPlannedItems(dayMeals)
 
               return (
                 <article
                   key={day}
-                  className="plan-day-card"
+                  className={dateString === today ? 'plan-day-card today' : 'plan-day-card'}
                   aria-label={`Open ${day} meal plan`}
                   role="button"
                   tabIndex={0}
@@ -333,19 +429,20 @@ function MealPlanPage({ recipes = [], mealPlan = [], setMealPlan, nutritionGoals
                   {dayMeals.length ? (
                     <span className="plan-week-meal-list">
                       {dayMeals.map((item) => {
-                        const plannedRecipe = recipes.find((recipe) => recipe.id === item.recipeId)
+                        const plannedItem = getPlannedItem(item)
+                        const image = plannedItem?.image || plannedItem?.labelImage
                         return (
                           <span className="plan-week-meal" key={item.id}>
-                            {plannedRecipe?.image ? (
-                              <img src={plannedRecipe.image} alt="" />
+                            {image ? (
+                              <img src={image} alt="" />
                             ) : (
                               <span className="plan-week-meal-placeholder" aria-hidden="true">
-                                {plannedRecipe?.name?.charAt(0) || '+'}
+                                {plannedItem?.name?.charAt(0) || '+'}
                               </span>
                             )}
                             <span className="plan-week-meal-copy">
                               <span className="plan-week-meal-type">{item.meal === 'Snack' ? 'Snack' : item.meal}</span>
-                              <strong>{plannedRecipe?.name || 'Choose a recipe'}</strong>
+                              <strong>{plannedItem?.name || 'Choose a recipe or food'}</strong>
                             </span>
                           </span>
                         )
@@ -354,7 +451,7 @@ function MealPlanPage({ recipes = [], mealPlan = [], setMealPlan, nutritionGoals
                   ) : (
                     <span className="plan-week-empty">No meals planned</span>
                   )}
-                  {renderMacroSummary(day, plannedRecipes)}
+                  {renderMacroSummary(day, plannedItems)}
                 </article>
               )
             })}
