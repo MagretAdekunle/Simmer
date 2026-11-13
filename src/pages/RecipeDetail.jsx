@@ -1,5 +1,7 @@
 // Selected-recipe presentation and cooking controls; RecipesPage coordinates selection and navigation.
 import { useEffect, useState } from 'react'
+import { BackButton, CancelButton, DeleteIconButton, EditIconButton } from '../ActionButtons'
+import confirmDeletion from '../confirmDeletion'
 import CookingMode from './CookingMode'
 import { MEAL_PLAN_DAYS, MEAL_TYPES } from '../planning'
 import { convertIngredient } from './recipeMeasurements'
@@ -70,12 +72,20 @@ function RecipeDetail({
           <h2>{recipe.name}</h2>
         </div>
         <div className="recipe-detail-actions">
-          <button type="button" className="secondary-button" onClick={onClose}>Back</button>
-          <button type="button" className="secondary-button" onClick={() => onToggleFavorite(recipe.id)}>
-            {recipe.favorite ? 'Unfavorite' : 'Favorite'}
+          <BackButton iconOnly className="recipe-detail-icon-button" aria-label="Back to recipes" title="Back to recipes" onClick={onClose} />
+          <button
+            type="button"
+            className={`secondary-button recipe-detail-icon-button${recipe.favorite ? ' active' : ''}`}
+            aria-label={recipe.favorite ? 'Remove from favorites' : 'Add to favorites'}
+            title={recipe.favorite ? 'Remove from favorites' : 'Add to favorites'}
+            onClick={() => onToggleFavorite(recipe.id)}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" />
+            </svg>
           </button>
-          <button type="button" className="secondary-button" onClick={onEdit}>Edit</button>
-          <button type="button" className="danger-button" onClick={() => onDelete(recipe.id)}>Delete</button>
+          <EditIconButton label={`Edit ${recipe.name || 'recipe'}`} onClick={onEdit} />
+          <DeleteIconButton label={`Delete ${recipe.name || 'recipe'}`} onClick={() => onDelete(recipe.id)} />
         </div>
       </div>
 
@@ -182,9 +192,7 @@ function RecipeDetail({
             </select>
           </label>
           <button type="submit" className="primary-button">Add meal</button>
-          <button type="button" className="secondary-button" onClick={() => setShowMealPlanPicker(false)}>
-            Cancel
-          </button>
+          <CancelButton onClick={() => setShowMealPlanPicker(false)} />
         </form>
       ) : null}
       {actionMessage ? <p className="recipe-action-message" role="status">{actionMessage}</p> : null}
@@ -353,9 +361,16 @@ function RecipeDetail({
               className="recipe-tag-pill"
               key={`tag-${tag}`}
               aria-label={`Remove tag ${tag}`}
-              onClick={() => onUpdateRecipeTags(recipe.id, tags.filter((existingTag) => existingTag !== tag))}
+              onClick={() => {
+                if (confirmDeletion(`the "${tag}" tag`)) {
+                  onUpdateRecipeTags(recipe.id, tags.filter((existingTag) => existingTag !== tag))
+                }
+              }}
             >
-              {tag}<span aria-hidden="true"> ×</span>
+              {tag}
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" />
+              </svg>
             </button>
           ))}
           {!tags.length ? <span className="recipe-tags-empty">No tags added yet.</span> : null}

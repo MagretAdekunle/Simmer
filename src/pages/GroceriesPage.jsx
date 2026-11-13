@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { DeleteIconButton } from '../ActionButtons'
 import { createListItemId } from '../planning'
+import confirmDeletion from '../confirmDeletion'
 import './GroceriesPage.css'
 
 function GroceriesPage({ recipes = [], groceryItems = [], setGroceryItems }) {
@@ -33,7 +35,11 @@ function GroceriesPage({ recipes = [], groceryItems = [], setGroceryItems }) {
             <button
               type="button"
               className="grocery-page-button"
-              onClick={() => setGroceryItems((items) => items.filter((item) => !item.checked))}
+              onClick={() => {
+                if (confirmDeletion('all checked grocery items')) {
+                  setGroceryItems((items) => items.filter((item) => !item.checked))
+                }
+              }}
             >
               Clear checked
             </button>
@@ -71,14 +77,14 @@ function GroceriesPage({ recipes = [], groceryItems = [], setGroceryItems }) {
                     <small>From {recipeNames.get(item.recipeId)}</small>
                   ) : null}
                 </div>
-                <button
-                  type="button"
-                  className="grocery-page-button danger"
-                  aria-label={`Remove ${item.name}`}
-                  onClick={() => setGroceryItems((items) => items.filter((entry) => entry.id !== item.id))}
-                >
-                  Remove
-                </button>
+                <DeleteIconButton
+                  label={`Remove ${item.name}`}
+                  onClick={() => {
+                    if (confirmDeletion(item.name)) {
+                      setGroceryItems((items) => items.filter((entry) => entry.id !== item.id))
+                    }
+                  }}
+                />
               </li>
             ))}
           </ul>

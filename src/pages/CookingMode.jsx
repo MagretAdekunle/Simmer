@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { DeleteIconButton } from '../ActionButtons'
+import confirmDeletion from '../confirmDeletion'
 import './CookingMode.css'
 import { convertIngredient } from './recipeMeasurements'
 
@@ -150,6 +152,8 @@ function CookingMode({
   }
 
   const removeTimer = (timerId) => {
+    const timer = timers.find((item) => item.id === timerId)
+    if (!timer || !confirmDeletion(`${timer.label} timer`)) return
     setTimers((current) => current.filter((timer) => timer.id !== timerId))
   }
 
@@ -337,9 +341,7 @@ function CookingMode({
                   <button type="button" className="secondary-button timer-icon-button" aria-label="Reset timer" title="Reset" onClick={() => resetTimer(timer.id)}>
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11a8 8 0 1 1 2.3 5.7M4 5v6h6" /></svg>
                   </button>
-                  <button type="button" className="secondary-button timer-icon-button" aria-label="Remove timer" title="Remove" onClick={() => removeTimer(timer.id)}>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16m-10 4v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" /></svg>
-                  </button>
+                  <DeleteIconButton label={`Remove ${timer.label} timer`} onClick={() => removeTimer(timer.id)} />
                 </div>
               </article>
             ))}

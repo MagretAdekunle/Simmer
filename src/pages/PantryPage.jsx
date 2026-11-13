@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import confirmDeletion from '../confirmDeletion'
 import './PantryPage.css'
 
 const PANTRY_STORAGE_KEY = 'simmer-pantry-v1'
@@ -79,18 +80,21 @@ function PantryPage({ recipes = [] }) {
   }
 
   const removeMainItem = (item) => {
+    if (!confirmDeletion(`${item} from your pantry`)) return
     const next = mains.filter((entry) => entry !== item)
     setMains(next)
     persistPantry(next, seasonings, toppings)
   }
 
   const removeSeasoningItem = (item) => {
+    if (!confirmDeletion(`${item} from your pantry`)) return
     const next = seasonings.filter((entry) => entry !== item)
     setSeasonings(next)
     persistPantry(mains, next, toppings)
   }
 
   const removeToppingItem = (item) => {
+    if (!confirmDeletion(`${item} from your pantry`)) return
     const next = toppings.filter((entry) => entry !== item)
     setToppings(next)
     persistPantry(mains, seasonings, next)
@@ -224,9 +228,13 @@ function PantryPage({ recipes = [] }) {
                     key={item}
                     type="button"
                     className="chip pantry-chip"
+                    aria-label={`Remove ${item} from pantry`}
                     onClick={() => removeMainItem(item)}
                   >
-                    {item} ×
+                    {item}
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" />
+                    </svg>
                   </button>
                 ))
               ) : (
@@ -244,9 +252,13 @@ function PantryPage({ recipes = [] }) {
                     key={item}
                     type="button"
                     className="chip pantry-chip"
+                    aria-label={`Remove ${item} from pantry`}
                     onClick={() => removeSeasoningItem(item)}
                   >
-                    {item} ×
+                    {item}
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" />
+                    </svg>
                   </button>
                 ))
               ) : (
@@ -264,9 +276,13 @@ function PantryPage({ recipes = [] }) {
                     key={item}
                     type="button"
                     className="chip pantry-chip"
+                    aria-label={`Remove ${item} from pantry`}
                     onClick={() => removeToppingItem(item)}
                   >
-                    {item} ×
+                    {item}
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" />
+                    </svg>
                   </button>
                 ))
               ) : (

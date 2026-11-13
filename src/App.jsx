@@ -6,8 +6,10 @@ import GroceriesPage from './pages/GroceriesPage'
 import DiscoverPage from './pages/DiscoverPage'
 import ProfilePage from './pages/ProfilePage'
 import PantryPage from './pages/PantryPage'
+import MyFoodsPage from './pages/MyFoodsPage'
+import { createListItemId } from './planning'
 
-// This file decides which page is visible (Recipes, Meal Plan, Groceries, Discover)
+// This file decides which page is visible in the app navigation.
 // If you want to add a new tab or change the app layout, start here.
 
 
@@ -16,6 +18,7 @@ const GOALS_STORAGE_KEY = 'simmer-nutrition-goals-v1'
 const WEIGHT_ENTRIES_STORAGE_KEY = 'simmer-weight-entries-v1'
 const GROCERIES_STORAGE_KEY = 'simmer-groceries-v1'
 const MEAL_PLAN_STORAGE_KEY = 'simmer-meal-plan-v1'
+const FOODS_STORAGE_KEY = 'simmer-foods-v1'
 const DEFAULT_COOKBOOK = 'Uncategorized'
 const DEFAULT_GOALS = {
   weightGoal: '',
@@ -28,6 +31,7 @@ const DEFAULT_GOALS = {
 
 const navigationTabs = [
   { id: 'recipes', label: 'Recipes', icon: 'M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 1 4 17.5zM4 7h16M8 3v4' },
+  { id: 'my foods', label: 'My Foods', icon: 'M12 3v18M5 8h14M5 16h14M7 3h10v18H7z' },
   { id: 'meal plan', label: 'Meal Plan', icon: 'M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13H4V6a1 1 0 0 1 1-1zM8 13h3m2 0h3m-8 3h3' },
   { id: 'groceries', label: 'Groceries', icon: 'M3 5h2l2.2 10.1a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 1.9-1.4L21 8H6M10 20h.01M17 20h.01' },
   { id: 'discover', label: 'Discover', icon: 'M12 21s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12zM12 6l1.5 3.5L17 11l-3.5 1.5L12 16l-1.5-3.5L7 11l3.5-1.5z' },
@@ -129,9 +133,6 @@ function App() {
     }
   })
 
-  // A one-time signal used to tell the recipe library to open a blank creation form.
-  const [createRecipeRequested, setCreateRecipeRequested] = useState(false)
-
   // Keep the recipe list in localStorage so it persists across page refreshes.
   const [recipes, setRecipes] = useState(() => {
     const storedRecipes = localStorage.getItem(STORAGE_KEY)
@@ -164,6 +165,15 @@ function App() {
     }
   })
 
+  const [foods, setFoods] = useState(() => {
+    try {
+      const storedFoods = JSON.parse(localStorage.getItem(FOODS_STORAGE_KEY) || '[]')
+      return Array.isArray(storedFoods) ? storedFoods : []
+    } catch {
+      return []
+    }
+  })
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes))
   }, [recipes])
@@ -177,6 +187,10 @@ function App() {
   }, [mealPlan])
 
   useEffect(() => {
+    localStorage.setItem(FOODS_STORAGE_KEY, JSON.stringify(foods))
+  }, [foods])
+
+  useEffect(() => {
     localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(nutritionGoals))
   }, [nutritionGoals])
 
@@ -186,13 +200,34 @@ function App() {
 
   // Route the selected app tab to the right page component.
   const renderPage = () => {
+    if (activeTab === 'my foods') {
+      return (
+        <MyFoodsPage
+          foods={foods}
+          setFoods={setFoods}
+          onAddToMealPlan={(foodId, day, date, meal) =>
+            setMealPlan((items) => [...items, {
+              id: createListItemId(),
+              day,
+              date,
+              meal,
+              recipeId: '',
+              foodId,
+            }])
+          }
+        />
+      )
+    }
+
     if (activeTab === 'meal plan') {
       return (
         <MealPlanPage
           recipes={recipes}
+          foods={foods}
           mealPlan={mealPlan}
           setMealPlan={setMealPlan}
           nutritionGoals={nutritionGoals}
+          onOpenMyFoods={() => setActiveTab('my foods')}
         />
       )
     }
@@ -229,8 +264,6 @@ function App() {
         setGroceryItems={setGroceryItems}
         onSetMealPlan={setMealPlan}
         nutritionGoals={nutritionGoals}
-        createRecipeRequested={createRecipeRequested}
-        setCreateRecipeRequested={setCreateRecipeRequested}
       />
     )
   }
@@ -249,6 +282,7 @@ function App() {
               key={tab.id}
               type="button"
               className={activeTab === tab.id ? 'nav-tab active' : 'nav-tab'}
+              aria-label={tab.label}
               onClick={() => setActiveTab(tab.id)}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -260,21 +294,6 @@ function App() {
         </nav>
 
         <div className="nav-actions">
-
-          <button
-            type="button"
-            className="primary-button"
-            onClick={() => {
-              setActiveTab('recipes')
-              setCreateRecipeRequested(true)
-            }}
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            Add recipe
-          </button>
-
           <button
             type="button"
             className="profile-button"

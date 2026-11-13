@@ -68,6 +68,20 @@
 
 .pantry-chip {
   border: 1px solid #ead9cc;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pantry-chip svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: #b91c1c;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .pantry-empty {

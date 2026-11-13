@@ -742,12 +742,7 @@ h3 {
     justify-content: flex-start;
     gap: 10px;
     padding: 6px 12px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .top-nav::-webkit-scrollbar {
-    display: none;
+    overflow: hidden;
   }
 
   .brand-block {
@@ -764,16 +759,18 @@ h3 {
   }
 
   .nav-tabs {
-    flex: 0 0 auto;
-    width: max-content;
-    justify-content: flex-start;
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+    justify-content: space-between;
     gap: 2px;
     margin: 0;
     padding: 2px;
   }
 
   .nav-tab {
-    flex: 0 0 auto;
+    flex: 1 1 auto;
+    min-width: 0;
     padding: 0.28rem 0.5rem;
     font-size: 0.82rem;
   }
@@ -940,6 +937,96 @@ body {
   color: #385e7c;
 }
 
+.back-icon-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.back-icon-button svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.back-icon-button.icon-only {
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+}
+
+.cancel-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid #fecaca;
+  border-radius: 50%;
+  background: #fff1f2;
+  color: #b91c1c;
+}
+
+.cancel-icon-button:hover {
+  background: #ffe4e6;
+}
+
+.cancel-icon-button svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.icon-action-button {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.icon-action-button svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.edit-icon-button {
+  border-color: #d7e4dc;
+  background: #f2f7f3;
+  color: #315d49;
+}
+
+.edit-icon-button:hover {
+  background: #e4efe7;
+}
+
+.delete-icon-button {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #b91c1c;
+}
+
+.delete-icon-button:hover {
+  background: #ffe4e6;
+}
+
 .secondary-button.active {
   background: #dce9f1;
   color: #456f91;
@@ -1049,9 +1136,20 @@ input[type='checkbox']:hover {
 
 @media (max-width: 620px) {
   .nav-tab {
-    flex-direction: column;
-    gap: 2px;
-    padding: 0.3rem 0.45rem;
-    font-size: 0.67rem;
+    flex-direction: row;
+  }
+
+  .nav-tab span {
+    display: none;
+  }
+
+  .nav-tab {
+    padding: 0.3rem;
+  }
+}
+
+@media (min-width: 621px) and (max-width: 760px) {
+  .nav-tab span {
+    display: none;
   }
 }

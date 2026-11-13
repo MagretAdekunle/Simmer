@@ -1,4 +1,6 @@
 // Add-recipe entry choices and import forms; parsing and persistence stay with RecipesPage.
+import { BackButton, CancelButton } from '../ActionButtons'
+
 function RecipeCreationFlow({
   createStep,
   setCreateStep,
@@ -44,15 +46,9 @@ function RecipeCreationFlow({
         </div>
         <div className="form-actions">
           {createStep !== 'choose' ? (
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => setCreateStep(createStep === 'method' ? 'choose' : 'method')}
-            >
-              Back
-            </button>
+            <BackButton onClick={() => setCreateStep(createStep === 'method' ? 'choose' : 'method')} />
           ) : null}
-          <button type="button" className="secondary-button" onClick={cancelRecipeFlow}>Cancel</button>
+          <CancelButton onClick={cancelRecipeFlow} />
         </div>
       </div>
 

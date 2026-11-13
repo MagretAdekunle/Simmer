@@ -64,6 +64,16 @@
   transform: translateY(-2px);
 }
 
+.plan-day-card.today,
+.plan-day-detail.today {
+  border-color: #a8c5ad;
+  background: #f0f7f1;
+}
+
+.plan-day-card.today:hover {
+  border-color: #83aa8b;
+}
+
 .plan-day-card:focus-visible {
   outline: 3px solid #ea580c;
   outline-offset: 3px;
@@ -175,6 +185,60 @@
   margin-bottom: 18px;
 }
 
+.plan-day-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.plan-add-food-form {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 14px;
+  border: 1px solid #f0e0d4;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.plan-add-food-form label {
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+  gap: 4px;
+  color: #6b7280;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.plan-add-food-form select {
+  min-height: 40px;
+  padding: 7px 10px;
+  border: 1px solid #d5dce0;
+  border-radius: 10px;
+  background: #fff;
+  color: #1f2937;
+  font: inherit;
+}
+
+.plan-add-food-empty {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.88rem;
+}
+
+.plan-inline-link {
+  border: 0;
+  background: none;
+  color: #9a5a14;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .plan-meal-list {
   display: flex;
   flex-direction: column;
@@ -261,11 +325,9 @@
   font-weight: 600;
 }
 
-.plan-meal .grocery-page-button {
+.plan-meal .delete-icon-button {
   margin-bottom: 1px;
   justify-self: end;
-  width: auto;
-  white-space: nowrap;
 }
 
 .day-macro-summary {

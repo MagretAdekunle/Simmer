@@ -1,4 +1,5 @@
 // The controlled create/edit form for one recipe; RecipesPage owns the draft and save flow.
+import { BackButton, CancelButton, DeleteIconButton } from '../ActionButtons'
 import { parseCookbookList, recipeMacros } from './recipePageUtils'
 
 function RecipeEditor({
@@ -28,11 +29,9 @@ function RecipeEditor({
         </h2>
         <div className="form-actions">
           {!draft.id ? (
-            <button type="button" className="secondary-button" onClick={() => setCreateStep(editorReturnStep)}>
-              Back
-            </button>
+            <BackButton onClick={() => setCreateStep(editorReturnStep)} />
           ) : null}
-          <button type="button" className="secondary-button" onClick={cancelRecipeFlow}>Cancel</button>
+          <CancelButton onClick={cancelRecipeFlow} />
           <button type="button" className="secondary-button" onClick={onBackup}>Backup</button>
           <button type="button" className="secondary-button" onClick={onExport}>Export</button>
         </div>
@@ -129,14 +128,11 @@ function RecipeEditor({
               onChange={(event) => onUpdateRecipeList('ingredients', index, event.target.value)}
               placeholder="e.g. 2 cups flour"
             />
-            <button
-              type="button"
-              className="secondary-button remove-row-button"
-              aria-label={`Remove ingredient ${index + 1}`}
+            <DeleteIconButton
+              label={`Remove ingredient ${index + 1}`}
+              className="remove-row-button"
               onClick={() => onRemoveRecipeListRow('ingredients', index)}
-            >
-              Remove
-            </button>
+            />
           </div>
         ))}
       </section>
@@ -157,14 +153,11 @@ function RecipeEditor({
               onChange={(event) => onUpdateRecipeList('instructions', index, event.target.value)}
               placeholder={`Step ${index + 1}`}
             />
-            <button
-              type="button"
-              className="secondary-button remove-row-button"
-              aria-label={`Remove step ${index + 1}`}
+            <DeleteIconButton
+              label={`Remove step ${index + 1}`}
+              className="remove-row-button"
               onClick={() => onRemoveRecipeListRow('instructions', index)}
-            >
-              Remove
-            </button>
+            />
           </div>
         ))}
       </section>

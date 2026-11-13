@@ -2,6 +2,8 @@
 // This page coordinates recipe filters, the recipe grid, and its focused creation/detail views.
 
 import './RecipesPage.css'
+import { CancelButton, DeleteIconButton, EditIconButton } from '../ActionButtons'
+import confirmDeletion from '../confirmDeletion'
 import { useEffect, useState } from 'react'
 import RecipeDetail from './RecipeDetail'
 import RecipeEditor from './RecipeEditor'
@@ -194,6 +196,10 @@ function RecipesPage({
   }
 
   const removeRecipeListRow = (field, index) => {
+    const rowType = field === 'ingredients' ? 'ingredient' : 'instruction step'
+    const rowValue = draft[field][index]?.trim()
+    if (!confirmDeletion(rowValue || rowType)) return
+
     setDraft((currentDraft) => ({
       ...currentDraft,
       [field]: currentDraft[field].filter((_, rowIndex) => rowIndex !== index),
@@ -218,7 +224,7 @@ function RecipesPage({
       draft.name.trim() ||
       draft.description.trim() ||
       draft.image ||
-      draft.sourceLink.trim() ||
+      draft.sourceLink.trim() || 
       draft.ingredients.some((ingredient) => ingredient.trim()) ||
       draft.instructions.some((instruction) => instruction.trim()) ||
       draft.notes.trim() ||
@@ -426,6 +432,25 @@ function RecipesPage({
               />
             </label>
 
+            <button
+              type="button"
+              className={showCompactFilters ? 'filter-toggle-button active' : 'filter-toggle-button'}
+              aria-label={showCompactFilters ? 'Hide filters' : 'Show filters'}
+              title={showCompactFilters ? 'Hide filters' : 'Show filters'}
+              aria-expanded={showCompactFilters}
+              aria-controls="recipe-filter-options"
+              onClick={() => setShowCompactFilters((current) => !current)}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 5h16l-6.5 7.2v5.3l-3 1.5v-6.8L4 5Z" />
+              </svg>
+            </button>
+          </div>
+
+          <div
+            id="recipe-filter-options"
+            className={showCompactFilters ? 'filter-selects expanded' : 'filter-selects'}
+          >
             <div className="filter-group favorite-filter-group">
               <button
                 type="button"
@@ -436,17 +461,6 @@ function RecipesPage({
               </button>
             </div>
 
-            <button
-              type="button"
-              className="filter-toggle-button"
-              aria-expanded={showCompactFilters}
-              onClick={() => setShowCompactFilters((current) => !current)}
-            >
-              {showCompactFilters ? 'Hide filters' : 'Filters'}
-            </button>
-          </div>
-
-          <div className={showCompactFilters ? 'filter-selects expanded' : 'filter-selects'}>
             <label className="toolbar-select">
               <span>Tag</span>
               <select value={activeTag} onChange={(event) => setActiveTag(event.target.value)}>
@@ -539,6 +553,15 @@ function RecipesPage({
             <div className="panel-header recipe-grid-header">
               <h2>{showCookbookTiles ? 'Cookbooks' : selectedCookbook ? selectedCookbook : 'Recipes'}</h2>
 
+              {!showCookbookTiles ? (
+                <button type="button" className="primary-button recipe-add-button" onClick={onStartCreate}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                  Add recipe
+                </button>
+              ) : null}
+
               {showCookbookTiles ? (
                 <button type="button" className="primary-button cookbook-add-button" onClick={onStartCookbook}>
                   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -548,30 +571,27 @@ function RecipesPage({
                 </button>
               ) : null}
 
-              {!showCookbookTiles ? (
-                <div className="view-mode-toggle" role="group" aria-label="Recipe layout">
-                  <button
-                    type="button"
-                    className={recipeDisplayMode === 'grid' ? 'tiny-button active' : 'tiny-button'}
-                    onClick={() => setRecipeDisplayMode('grid')}
-                  >
-                    Grid
-                  </button>
-                  <button
-                    type="button"
-                    className={recipeDisplayMode === 'list' ? 'tiny-button active' : 'tiny-button'}
-                    onClick={() => setRecipeDisplayMode('list')}
-                  >
-                    List
-                  </button>
-                </div>
-              ) : null}
+              <div className="view-mode-toggle" role="group" aria-label={showCookbookTiles ? 'Cookbook layout' : 'Recipe layout'}>
+                <button
+                  type="button"
+                  className={recipeDisplayMode === 'grid' ? 'tiny-button active' : 'tiny-button'}
+                  onClick={() => setRecipeDisplayMode('grid')}
+                >
+                  Grid
+                </button>
+                <button
+                  type="button"
+                  className={recipeDisplayMode === 'list' ? 'tiny-button active' : 'tiny-button'}
+                  onClick={() => setRecipeDisplayMode('list')}
+                >
+                  List
+                </button>
+              </div>
 
               {selectedCookbook && !showCookbookTiles ? (
                 <div className="cookbook-tile-actions">
-                  <button
-                    type="button"
-                    className="tiny-button"
+                  <EditIconButton
+                    label={`Edit ${selectedCookbook} cookbook`}
                     onClick={() => {
                       setIsOrganizing(true)
                       setOrganizeSelectedIds(
@@ -581,16 +601,11 @@ function RecipesPage({
                       )
                       setCookbookInput(selectedCookbook)
                     }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="tiny-button danger"
+                  />
+                  <DeleteIconButton
+                    label={`Delete ${selectedCookbook} cookbook`}
                     onClick={() => onDeleteCookbook(selectedCookbook)}
-                  >
-                    Delete
-                  </button>
+                  />
                 </div>
               ) : null}
             </div>
@@ -633,17 +648,13 @@ function RecipesPage({
                 )}
 
                 <div className="form-actions">
-                  <button
-                    type="button"
-                    className="secondary-button"
+                  <CancelButton
                     onClick={() => {
                       setIsOrganizing(false)
                       setCookbookInput('')
                       setOrganizeSelectedIds([])
                     }}
-                  >
-                    Cancel
-                  </button>
+                  />
                   <button
                     type="button"
                     className="primary-button"
@@ -656,24 +667,33 @@ function RecipesPage({
               </div>
             ) : null}
 
-            <div className={showCookbookTiles || recipeDisplayMode === 'grid' ? 'recipe-grid recipe-grid-large' : 'recipe-grid recipe-grid-large recipe-list-layout'}>
+            <div className={recipeDisplayMode === 'grid' ? 'recipe-grid recipe-grid-large' : 'recipe-grid recipe-grid-large recipe-list-layout'}>
               {showCookbookTiles
-                ? cookbookNames.map((cookbook) => (
-                    <button
-                      key={cookbook}
-                      type="button"
-                      className="recipe-tile cookbook-tile"
-                      onClick={() => setSelectedCookbook(cookbook)}
-                    >
-                      <div className="cookbook-tile-header">
-                        <span className="cookbook-tile-name">{cookbook}</span>
-                        <span className="cookbook-count badge">{cookbookCounts[cookbook] || 0}</span>
-                      </div>
-                      <div className="cookbook-tile-body">
-                        <span>{cookbookCounts[cookbook] || 0} recipe{(cookbookCounts[cookbook] || 0) === 1 ? '' : 's'}</span>
-                      </div>
-                    </button>
-                  ))
+                ? cookbookNames.map((cookbook) => {
+                    const cookbookImage = allRecipes.find((recipe) => {
+                      const recipeCookbooks = [
+                        ...(Array.isArray(recipe.cookbooks) ? recipe.cookbooks : []),
+                        recipe.cookbook,
+                      ].filter(Boolean)
+
+                      return recipeCookbooks.includes(cookbook) && recipe.image
+                    })?.image || 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=900&q=80'
+
+                    return (
+                      <button
+                        key={cookbook}
+                        type="button"
+                        className="recipe-tile cookbook-tile"
+                        onClick={() => setSelectedCookbook(cookbook)}
+                      >
+                        <img src={cookbookImage} alt="" />
+                        <div className="recipe-tile-content cookbook-tile-content">
+                          <span className="recipe-item-name cookbook-tile-name">{cookbook}</span>
+                          <span className="cookbook-count badge">{cookbookCounts[cookbook] || 0}</span>
+                        </div>
+                      </button>
+                    )
+                  })
                 : visibleRecipes.map((recipe) => (
                     <button
                       key={recipe.id}
@@ -687,12 +707,12 @@ function RecipesPage({
                       />
                       <div className="recipe-tile-content">
                         <span className="recipe-item-name">{recipe.name}</span>
-                        <span className="recipe-item-meta">
+                        {/* <span className="recipe-item-meta">
                           {recipe.cookbook || 'Uncategorized'} · {recipe.favorite ? '★ Favorite' : 'Recipe'}
                         </span>
                         <span className="recipe-item-meta">
                           {Number(recipe.rating || 0) > 0 ? `★ ${Number(recipe.rating).toFixed(1)}` : 'Unrated'} · {recipe.cooked ? 'Cooked' : 'Not cooked'}
-                        </span>
+                        </span> */}
                       </div>
                     </button>
                   ))}
